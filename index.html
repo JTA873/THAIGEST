@@ -866,22 +866,22 @@
             
             .cart-sidebar {
                 height: auto !important;
-                min-height: 500px;
-                max-height: 70vh;
-                overflow: visible !important;
+                min-height: 400px;
+                max-height: 80vh;
+                overflow-y: auto !important;
             }
             
             .cart-sidebar .cart-content {
                 display: flex !important;
                 flex-direction: column;
-                height: 100%;
+                height: auto;
                 overflow: visible;
             }
             
             .cart-sidebar .cart-items {
                 flex: 1;
                 overflow-y: auto;
-                max-height: 200px;
+                max-height: 250px;
             }
             
             .cart-sidebar.collapsed .cart-content {
@@ -1980,9 +1980,7 @@
                 }));
                 
                 // Charger les ruptures actuelles
-                const outOfStockSnapshot = await db.collection('outOfStock')
-                    .where('resolved', '==', false)
-                    .get();
+                const outOfStockSnapshot = await db.collection('outOfStock').get();
                 
                 const currentOutOfStock = {};
                 outOfStockSnapshot.forEach(doc => {
