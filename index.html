@@ -427,6 +427,13 @@
             display: none;
         }
         
+        .cart-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        
         .cart-toggle {
             position: absolute;
             top: var(--spacing-md);
@@ -845,6 +852,32 @@
             
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .pos-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .pos-items-container {
+                height: auto;
+                max-height: 50vh;
+            }
+            
+            .cart-sidebar {
+                height: auto;
+                min-height: 400px;
+                max-height: none;
+            }
+            
+            .cart-sidebar .cart-content {
+                display: flex !important;
+                flex-direction: column;
+                height: 100%;
+            }
+            
+            .cart-sidebar.collapsed .cart-content {
+                display: none !important;
             }
             
             .pos-grid {
@@ -2262,7 +2295,7 @@
                         </button>
                         
                         <div class="cart-content">
-                            <div>
+                            <div style="flex-shrink: 0;">
                                 <h3>Commande</h3>
                                 <div class="form-group">
                                     <label>Établissement</label>
@@ -2294,12 +2327,12 @@
                                 <button class="btn btn-success" style="width: 100%; padding: var(--spacing-lg); font-size: 1.1rem; margin-bottom: var(--spacing-sm);" onclick="processOrder()">
                                     ✓ Valider la Commande
                                 </button>
-                                <button class="btn btn-danger" style="width: 100%; padding: var(--spacing-sm);" onclick="clearCart()">
+                                <button class="btn btn-danger" style="width: 100%; padding: var(--spacing-sm); margin-bottom: var(--spacing-md);" onclick="clearCart()">
                                     🗑️ Vider le panier
                                 </button>
                             </div>
                             
-                            <div class="cart-items" id="cartItems">
+                            <div class="cart-items" id="cartItems" style="flex: 1; overflow-y: auto; min-height: 100px;">
                                 <p class="text-muted text-center">Panier vide</p>
                             </div>
                         </div>
