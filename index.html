@@ -1,0 +1,4039 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestionResto - Application Complète</title>
+    
+    <style>
+        /* ============================================
+           DESIGN SYSTEM MODERNE
+           ============================================ */
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            
+            --radius: 0.5rem;
+            --radius-lg: 1rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            
+            /* Responsive variables */
+            --sidebar-width: 260px;
+            --header-height: 60px;
+            --grid-gap: 1.5rem;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--gray-50);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        /* ============================================
+           LAYOUT
+           ============================================ */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            padding: var(--spacing-lg);
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar.mobile-hidden {
+            transform: translateX(-100%);
+        }
+        
+        .sidebar-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .mobile-header {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            align-items: center;
+            padding: 0 var(--spacing-md);
+            z-index: 999;
+            box-shadow: var(--shadow);
+        }
+        
+        .hamburger-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius);
+            transition: background 0.3s;
+        }
+        
+        .hamburger-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .mobile-header h1 {
+            font-size: 1.25rem;
+            margin-left: var(--spacing-md);
+            font-weight: 600;
+        }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .sidebar-overlay.active {
+            display: block;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+            padding: var(--spacing-md);
+            color: rgba(255,255,255,0.7);
+            border-radius: var(--radius);
+            cursor: pointer;
+            margin-bottom: var(--spacing-sm);
+            transition: all 0.3s;
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        
+        .main-content {
+            margin-left: 260px;
+            padding: var(--spacing-xl);
+            flex: 1;
+        }
+        
+        /* ============================================
+           COMPONENTS
+           ============================================ */
+        .card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            padding: var(--spacing-xl);
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md) var(--spacing-xl);
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: var(--spacing-sm) var(--spacing-md);
+            font-size: 0.875rem;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: var(--spacing-md);
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .form-group {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-primary);
+        }
+        
+        /* ============================================
+           STATS CARDS
+           ============================================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .stat-card {
+            background: white;
+            padding: var(--spacing-xl);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        /* ============================================
+           POS LAYOUT
+           ============================================ */
+        .pos-layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: var(--spacing-xl);
+            height: calc(100vh - 100px);
+        }
+        
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: var(--spacing-md);
+            overflow-y: auto;
+            padding: var(--spacing-md);
+        }
+        
+        .item-card {
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .item-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .item-name {
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .item-price {
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+        
+        .cart-sidebar {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            gap: var(--spacing-lg);
+        }
+        
+        .cart-items {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--spacing-md);
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .cart-total {
+            font-size: 1.5rem;
+            font-weight: 700;
+            padding: var(--spacing-lg);
+            background: var(--gray-50);
+            border-radius: var(--radius);
+            text-align: right;
+        }
+        
+        /* ============================================
+           TABLE
+           ============================================ */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th {
+            background: var(--gray-100);
+            padding: var(--spacing-md);
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--gray-200);
+        }
+        
+        td {
+            padding: var(--spacing-md);
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        tr:hover {
+            background: var(--gray-50);
+        }
+        
+        /* ============================================
+           UTILITIES
+           ============================================ */
+        .hidden {
+            display: none !important;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-muted {
+            color: var(--text-secondary);
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #dcfce7;
+            color: var(--success);
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: var(--warning);
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: var(--danger);
+        }
+        
+        /* ============================================
+           LOGIN PAGE
+           ============================================ */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .login-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl) * 2;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .login-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+            color: var(--primary);
+        }
+        
+        /* ============================================
+           KDS (Kitchen Display System)
+           ============================================ */
+        .kds-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: var(--spacing-lg);
+        }
+        
+        .order-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: var(--spacing-xl);
+            border-left: 4px solid var(--warning);
+        }
+        
+        .order-card.preparing {
+            border-left-color: var(--info);
+        }
+        
+        .order-card.ready {
+            border-left-color: var(--success);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 2px solid var(--gray-200);
+        }
+        
+        .order-time {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--danger);
+        }
+        
+        .order-items-list {
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .order-item-line {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-sm) 0;
+        }
+        
+        /* ============================================
+           MODAL
+           ============================================ */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+            padding-bottom: var(--spacing-md);
+            border-bottom: 2px solid var(--gray-200);
+        }
+        
+        .modal-close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        .modal-close:hover {
+            color: var(--danger);
+        }
+        
+        /* ============================================
+           CUSTOMIZATION MODAL
+           ============================================ */
+        .customization-section {
+            margin-bottom: var(--spacing-lg);
+            padding: var(--spacing-md);
+            background: var(--gray-50);
+            border-radius: var(--radius);
+        }
+        
+        .customization-section h4 {
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+        }
+        
+        .topping-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: var(--spacing-sm);
+        }
+        
+        .topping-item {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .topping-item:hover {
+            border-color: var(--primary);
+        }
+        
+        .topping-item.selected {
+            border-color: var(--primary);
+            background: rgba(102, 126, 234, 0.1);
+        }
+        
+        .topping-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+        
+        .sauce-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-sm);
+        }
+        
+        .sauce-option {
+            padding: var(--spacing-md);
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .sauce-option:hover {
+            border-color: var(--primary);
+        }
+        
+        .sauce-option.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* ============================================
+           RESPONSIVE DESIGN - MOBILE & TABLET
+           ============================================ */
+        
+        /* Tablets (iPad, Android tablets) */
+        @media (max-width: 1024px) {
+            :root {
+                --sidebar-width: 220px;
+                --grid-gap: 1rem;
+            }
+            
+            .main-content {
+                margin-left: 220px;
+                padding: var(--spacing-lg);
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .pos-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+            
+            .kds-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+            
+            .topping-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+        
+        /* Mobile devices (phones) */
+        @media (max-width: 768px) {
+            :root {
+                --spacing-md: 0.75rem;
+                --spacing-lg: 1rem;
+                --spacing-xl: 1.25rem;
+            }
+            
+            .mobile-header {
+                display: flex;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.mobile-visible {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                margin-top: var(--header-height);
+                padding: var(--spacing-md);
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+            }
+            
+            .pos-container {
+                flex-direction: column;
+            }
+            
+            .pos-items {
+                width: 100%;
+                margin-bottom: var(--spacing-md);
+            }
+            
+            .pos-cart {
+                width: 100%;
+                position: static;
+            }
+            
+            .pos-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: var(--spacing-sm);
+            }
+            
+            .pos-item {
+                padding: var(--spacing-sm);
+                font-size: 0.875rem;
+            }
+            
+            .kds-grid {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-md);
+            }
+            
+            .order-card {
+                padding: var(--spacing-md);
+            }
+            
+            .modal-content {
+                width: 95%;
+                padding: var(--spacing-md);
+                max-height: 85vh;
+            }
+            
+            .modal-header h2 {
+                font-size: 1.25rem;
+            }
+            
+            .topping-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            }
+            
+            .btn {
+                padding: var(--spacing-sm) var(--spacing-md);
+                font-size: 0.875rem;
+            }
+            
+            .card {
+                padding: var(--spacing-md);
+                margin-bottom: var(--spacing-md);
+            }
+            
+            table {
+                font-size: 0.875rem;
+            }
+            
+            .form-group {
+                margin-bottom: var(--spacing-md);
+            }
+        }
+        
+        /* Small phones */
+        @media (max-width: 480px) {
+            .pos-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .topping-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sauce-selector {
+                flex-direction: column;
+            }
+            
+            .modal-content {
+                width: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn-group .btn {
+                width: 100%;
+            }
+        }
+        
+        /* Touch device optimizations (iOS & Android) */
+        @media (hover: none) and (pointer: coarse) {
+            /* Larger touch targets */
+            .btn {
+                min-height: 44px;
+                padding: var(--spacing-md) var(--spacing-lg);
+            }
+            
+            .nav-item {
+                min-height: 48px;
+            }
+            
+            .pos-item {
+                min-height: 80px;
+            }
+            
+            .topping-item {
+                min-height: 48px;
+                padding: var(--spacing-md);
+            }
+            
+            .sauce-option {
+                min-height: 48px;
+                padding: var(--spacing-md) var(--spacing-lg);
+            }
+            
+            /* Remove hover effects on touch devices */
+            .btn:hover,
+            .nav-item:hover,
+            .pos-item:hover,
+            .topping-item:hover,
+            .sauce-option:hover {
+                transform: none;
+            }
+            
+            /* Active states for touch feedback */
+            .btn:active {
+                transform: scale(0.97);
+            }
+            
+            .pos-item:active {
+                transform: scale(0.95);
+            }
+            
+            /* Disable text selection on interactive elements */
+            .btn, .pos-item, .nav-item, .topping-item, .sauce-option {
+                -webkit-user-select: none;
+                user-select: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        
+        /* Landscape orientation on mobile */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .mobile-header {
+                height: 48px;
+            }
+            
+            .main-content {
+                margin-top: 48px;
+            }
+            
+            .pos-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+            
+            .kds-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* iOS specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            /* Safe area for iPhone notch */
+            .mobile-header {
+                padding-top: env(safe-area-inset-top);
+                height: calc(var(--header-height) + env(safe-area-inset-top));
+            }
+            
+            .main-content {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            
+            .sidebar {
+                padding-top: calc(var(--spacing-lg) + env(safe-area-inset-top));
+            }
+            
+            /* Fix for iOS input zoom */
+            input[type="text"],
+            input[type="number"],
+            input[type="email"],
+            input[type="password"],
+            select,
+            textarea {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Container Principal -->
+    <div id="app"></div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        // ============================================
+        // CONFIGURATION FIREBASE
+        // ============================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-3cyKsOJ-SB23bSEtbh1anAt-mB0htLs",
+            authDomain: "thaigest.firebaseapp.com",
+            projectId: "thaigest",
+            storageBucket: "thaigest.firebasestorage.app",
+            messagingSenderId: "738590645148",
+            appId: "1:738590645148:web:bc60f86c5121fb46a74659",
+            measurementId: "G-LLBPYH4ZN6"
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // ============================================
+        // STATE GLOBAL
+        // ============================================
+        let currentUser = null;
+        let currentPage = 'login';
+        let currentEstablishment = null;
+        let cart = [];
+        let allItems = [];
+        
+        // ============================================
+        // ROUTING & RENDERING
+        // ============================================
+        function renderApp() {
+            const app = document.getElementById('app');
+            
+            if (!currentUser) {
+                app.innerHTML = renderLoginPage();
+                return;
+            }
+            
+            app.innerHTML = `
+                <div class="app-container">
+                    <!-- Mobile Header -->
+                    <div class="mobile-header">
+                        <button class="hamburger-btn" onclick="toggleMobileSidebar()">☰</button>
+                        <h1>🍽️ GestionResto</h1>
+                    </div>
+                    
+                    <!-- Sidebar Overlay -->
+                    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
+                    
+                    ${renderSidebar()}
+                    <main class="main-content">
+                        ${renderCurrentPage()}
+                    </main>
+                </div>
+            `;
+            
+            attachEventListeners();
+        }
+        
+        function renderSidebar() {
+            return `
+                <nav class="sidebar">
+                    <div class="sidebar-logo">🍽️ GestionResto</div>
+                    <div class="nav-item ${currentPage === 'dashboard' ? 'active' : ''}" onclick="navigateTo('dashboard')">
+                        📊 Dashboard
+                    </div>
+                    <div class="nav-item ${currentPage === 'pos-sha' ? 'active' : ''}" onclick="navigateTo('pos-sha')">
+                        💳 POS Le Sha
+                    </div>
+                    <div class="nav-item ${currentPage === 'pos-shiba' ? 'active' : ''}" onclick="navigateTo('pos-shiba')">
+                        💳 POS Le Shiba
+                    </div>
+                    <div class="nav-item ${currentPage === 'payments' ? 'active' : ''}" onclick="navigateTo('payments')">
+                        💰 Paiements
+                    </div>
+                    <div class="nav-item ${currentPage === 'kds' ? 'active' : ''}" onclick="navigateTo('kds')">
+                        🍳 Cuisine (KDS)
+                    </div>
+                    <div class="nav-item ${currentPage === 'items-sha' ? 'active' : ''}" onclick="navigateTo('items-sha')">
+                        📦 Articles Le Sha
+                    </div>
+                    <div class="nav-item ${currentPage === 'items-shiba' ? 'active' : ''}" onclick="navigateTo('items-shiba')">
+                        📦 Articles Le Shiba
+                    </div>
+                    <div class="nav-item ${currentPage === 'stock-sha' ? 'active' : ''}" onclick="navigateTo('stock-sha')">
+                        📊 Stock Le Sha
+                    </div>
+                    <div class="nav-item ${currentPage === 'stock-shiba' ? 'active' : ''}" onclick="navigateTo('stock-shiba')">
+                        📊 Stock Le Shiba
+                    </div>
+                    <div class="nav-item ${currentPage === 'recipes' ? 'active' : ''}" onclick="navigateTo('recipes')">
+                        📖 Recettes (BOM)
+                    </div>
+                    <div class="nav-item ${currentPage === 'reports' ? 'active' : ''}" onclick="navigateTo('reports')">
+                        📈 Rapports
+                    </div>
+                    <div style="margin-top: auto; padding-top: var(--spacing-xl); border-top: 1px solid rgba(255,255,255,0.1);">
+                        <div style="color: white; margin-bottom: var(--spacing-md);">
+                            <div style="font-weight: 600;">${currentUser.name}</div>
+                            <div style="font-size: 0.875rem; opacity: 0.7;">${currentUser.role}</div>
+                        </div>
+                        <button class="btn btn-sm" style="width: 100%;" onclick="logout()">Déconnexion</button>
+                    </div>
+                </nav>
+            `;
+        }
+        
+        function renderCurrentPage() {
+            switch(currentPage) {
+                case 'dashboard': return renderDashboard();
+                case 'pos-sha': return renderPOS('Le_Sha');
+                case 'pos-shiba': return renderPOS('Le_Shiba');
+                case 'kds': return renderKDS();
+                case 'payments': return renderPayments();
+                case 'items-sha': return renderItems('Le_Sha');
+                case 'items-shiba': return renderItems('Le_Shiba');
+                case 'stock-sha': return renderStock('Le_Sha');
+                case 'stock-shiba': return renderStock('Le_Shiba');
+                case 'recipes': return renderRecipes();
+                case 'reports': return renderReports();
+                default: return renderDashboard();
+            }
+        }
+        
+        // ============================================
+        // LOGIN PAGE
+        // ============================================
+        function renderLoginPage() {
+            return `
+                <div class="login-container">
+                    <div class="login-card">
+                        <h1 class="login-logo">🍽️ GestionResto</h1>
+                        <form onsubmit="handleLogin(event)">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="email" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Mot de passe</label>
+                                <input type="password" id="password" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                                Connexion
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const userDoc = await db.collection('users').doc(userCredential.user.uid).get();
+                
+                if (!userDoc.exists || !userDoc.data().active) {
+                    alert('Compte inactif');
+                    await auth.signOut();
+                    return;
+                }
+                
+                currentUser = { uid: userCredential.user.uid, ...userDoc.data() };
+                currentPage = 'dashboard';
+                renderApp();
+            } catch (error) {
+                alert('Erreur de connexion: ' + error.message);
+            }
+        }
+        
+        async function logout() {
+            await auth.signOut();
+            currentUser = null;
+            currentPage = 'login';
+            renderApp();
+        }
+        
+        // ============================================
+        // DASHBOARD
+        // ============================================
+        function renderDashboard() {
+            loadDashboardStats();
+            return `
+                <h1>📊 Dashboard</h1>
+                <p class="text-muted">Vue d'ensemble de votre activité</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Chiffre d'affaires du jour</div>
+                        <div class="stat-value" id="statRevenue">0 F</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Commandes du jour</div>
+                        <div class="stat-value" id="statOrders">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Ticket moyen</div>
+                        <div class="stat-value" id="statAvg">0 F</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Tables actives</div>
+                        <div class="stat-value" id="statTables">0</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Commandes récentes</h3>
+                    <div id="recentOrders">Chargement...</div>
+                </div>
+            `;
+        }
+        
+        async function loadDashboardStats() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const ordersSnap = await db.collection('orders')
+                .where('createdAt', '>=', today)
+                .get();
+            
+            let totalRevenue = 0;
+            let orderCount = 0;
+            const activeTables = new Set();
+            
+            ordersSnap.docs.forEach(doc => {
+                const data = doc.data();
+                if (data.total) totalRevenue += data.total;
+                orderCount++;
+                if (data.status === 'pending') activeTables.add(data.tableNumber);
+            });
+            
+            const avgTicket = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
+            
+            setTimeout(() => {
+                document.getElementById('statRevenue').textContent = `${totalRevenue.toLocaleString()} F`;
+                document.getElementById('statOrders').textContent = orderCount;
+                document.getElementById('statAvg').textContent = `${avgTicket.toLocaleString()} F`;
+                document.getElementById('statTables').textContent = activeTables.size;
+            }, 100);
+            
+            loadRecentOrders();
+        }
+        
+        async function loadRecentOrders() {
+            const snapshot = await db.collection('orders')
+                .orderBy('createdAt', 'desc')
+                .limit(10)
+                .get();
+            
+            const container = document.getElementById('recentOrders');
+            
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-muted">Aucune commande récente</p>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Table</th>
+                            <th>Établissement</th>
+                            <th>Montant</th>
+                            <th>Statut</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${snapshot.docs.map(doc => {
+                            const order = doc.data();
+                            const statusBadge = order.status === 'pending' ? 'badge-warning' : 
+                                              order.status === 'paid' ? 'badge-success' : 'badge-danger';
+                            const statusText = order.status === 'pending' ? 'En attente' :
+                                             order.status === 'paid' ? 'Payée' : 'Annulée';
+                            const date = order.createdAt ? new Date(order.createdAt.toDate()).toLocaleString() : 'N/A';
+                            
+                            return `
+                                <tr>
+                                    <td><strong>Table ${order.tableNumber}</strong></td>
+                                    <td>${order.establishmentId || 'N/A'}</td>
+                                    <td><strong>${(order.total || 0).toLocaleString()} F</strong></td>
+                                    <td><span class="badge ${statusBadge}">${statusText}</span></td>
+                                    <td>${date}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // ============================================
+        // KDS (KITCHEN DISPLAY SYSTEM)
+        // ============================================
+        function renderKDS() {
+            loadKDSOrders();
+            return `
+                <h1>🍳 Cuisine - Affichage des Commandes</h1>
+                
+                <div style="display: flex; gap: var(--spacing-md); margin-bottom: var(--spacing-xl); align-items: center;">
+                    <select id="kdsEstablishment" class="form-control" style="max-width: 300px;" onchange="loadKDSOrders()">
+                        <option value="">Tous les établissements</option>
+                        <option value="Le_Sha">Le Sha</option>
+                        <option value="Le_Shiba">Le Shiba</option>
+                    </select>
+                    
+                    <select id="kdsStatusFilter" class="form-control" style="max-width: 200px;" onchange="loadKDSOrders()">
+                        <option value="active">Commandes actives</option>
+                        <option value="pending">En attente</option>
+                        <option value="preparing">En préparation</option>
+                        <option value="ready">Prêtes</option>
+                        <option value="all">Toutes</option>
+                    </select>
+                    
+                    <button class="btn btn-sm" onclick="loadKDSOrders()">🔄 Actualiser</button>
+                    
+                    <div style="margin-left: auto; font-size: 0.875rem; color: var(--text-secondary);">
+                        <span id="kdsCount">0</span> commande(s)
+                    </div>
+                </div>
+                
+                <div class="kds-grid" id="kdsGrid">
+                    <p class="text-muted text-center">Chargement...</p>
+                </div>
+            `;
+        }
+        
+        let kdsUnsubscribe = null;
+        
+        async function loadKDSOrders() {
+            // Désabonner l'ancien listener
+            if (kdsUnsubscribe) {
+                kdsUnsubscribe();
+            }
+            
+            const establishment = document.getElementById('kdsEstablishment')?.value;
+            const statusFilter = document.getElementById('kdsStatusFilter')?.value || 'active';
+            
+            let query = db.collection('orders');
+            
+            // Filtrer par statut
+            if (statusFilter === 'active') {
+                query = query.where('status', 'in', ['pending', 'preparing', 'ready']);
+            } else if (statusFilter !== 'all') {
+                query = query.where('status', '==', statusFilter);
+            }
+            
+            // Pas de orderBy pour éviter les erreurs d'index
+            
+            // Listener en temps réel
+            kdsUnsubscribe = query.onSnapshot(snapshot => {
+                let orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Filtrer par établissement côté client
+                if (establishment) {
+                    orders = orders.filter(o => o.establishmentId === establishment);
+                }
+                
+                // Filtrer les commandes actives si nécessaire
+                if (statusFilter === 'active') {
+                    orders = orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status));
+                }
+                
+                renderKDSCards(orders);
+            });
+        }
+        
+        function renderKDSCards(orders) {
+            const grid = document.getElementById('kdsGrid');
+            const countEl = document.getElementById('kdsCount');
+            
+            if (!grid) return;
+            
+            if (countEl) countEl.textContent = orders.length;
+            
+            if (orders.length === 0) {
+                grid.innerHTML = '<p class="text-muted text-center" style="grid-column: 1 / -1;">Aucune commande en cours</p>';
+                return;
+            }
+            
+            // Trier par date
+            orders.sort((a, b) => {
+                const aTime = a.createdAt?.toDate() || new Date();
+                const bTime = b.createdAt?.toDate() || new Date();
+                return aTime - bTime;
+            });
+            
+            grid.innerHTML = orders.map(order => {
+                const elapsedMinutes = order.createdAt 
+                    ? Math.floor((new Date() - order.createdAt.toDate()) / 60000)
+                    : 0;
+                
+                const statusClass = order.status === 'preparing' ? 'preparing' : 
+                                   order.status === 'ready' ? 'ready' : '';
+                
+                const statusText = order.status === 'preparing' ? '👨‍🍳 En préparation' :
+                                  order.status === 'ready' ? '✅ Prêt' : '⏳ Nouvelle commande';
+                
+                const statusBadge = order.status === 'preparing' ? 'badge-info' :
+                                   order.status === 'ready' ? 'badge-success' : 'badge-warning';
+                
+                const timeColor = elapsedMinutes > 15 ? 'var(--danger)' : 
+                                 elapsedMinutes > 10 ? 'var(--warning)' : 'var(--text-secondary)';
+                
+                return `
+                    <div class="order-card ${statusClass}">
+                        <div class="order-header">
+                            <div>
+                                <h2 style="margin: 0;">Table ${order.tableNumber}</h2>
+                                <span class="badge ${statusBadge}">${statusText}</span>
+                                <div class="text-muted" style="font-size: 0.875rem; margin-top: 0.25rem;">${order.establishmentId}</div>
+                            </div>
+                            <div class="order-time" style="color: ${timeColor};">${elapsedMinutes}min</div>
+                        </div>
+                        
+                        <div class="order-items-list">
+                            ${order.items.map(item => `
+                                <div class="order-item-line">
+                                    <span><strong style="color: var(--primary); font-size: 1.1rem;">×${item.quantity}</strong> ${item.itemName}</span>
+                                    ${item.customization ? `
+                                        <div class="text-muted" style="font-size: 0.75rem; margin-left: 1.5rem; margin-top: 0.25rem;">
+                                            ${item.customization.toppings?.length > 0 ? `🧀 + ${item.customization.toppings.join(', ')}` : ''}
+                                            ${item.customization.sauce ? `<br>🥫 ${item.customization.sauce}` : ''}
+                                            ${item.customization.notes ? `<br>📝 ${item.customization.notes}` : ''}
+                                        </div>
+                                    ` : ''}
+                                    ${item.components && item.components.length > 0 ? `
+                                        <div class="text-muted" style="font-size: 0.75rem; margin-left: 1.5rem;">
+                                            🧩 ${item.components.map(c => c.itemName).join(', ')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+                            ${order.status === 'pending' ? `
+                                <button class="btn btn-primary btn-sm" onclick="updateOrderStatus('${order.id}', 'preparing')">
+                                    ▶️ Démarrer
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="cancelOrder('${order.id}', '${order.tableNumber}')">
+                                    ❌ Refuser
+                                </button>
+                            ` : ''}
+                            ${order.status === 'preparing' ? `
+                                <button class="btn btn-success btn-sm" onclick="updateOrderStatus('${order.id}', 'ready')">
+                                    ✓ Prêt
+                                </button>
+                                <button class="btn btn-warning btn-sm" style="color: white;" onclick="updateOrderStatus('${order.id}', 'pending')">
+                                    ↩️ Remettre
+                                </button>
+                            ` : ''}
+                            ${order.status === 'ready' ? `
+                                <button class="btn btn-success btn-sm" style="grid-column: span 2;" disabled>
+                                    ✅ Commande Prête pour Service
+                                </button>
+                            ` : ''}
+                        </div>
+                        
+                        <div style="margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--gray-200);">
+                            <button class="btn btn-sm" onclick="showOrderDetails('${order.id}')" style="width: 100%;">
+                                👁️ Détails complets
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function cancelOrder(orderId, tableNumber) {
+            const reason = prompt(`Annuler la commande de la Table ${tableNumber}?\n\nRaison (optionnel):`);
+            
+            if (reason === null) return; // User cancelled
+            
+            if (!confirm(`Confirmer l'annulation de la Table ${tableNumber} ?`)) return;
+            
+            try {
+                await db.collection('orders').doc(orderId).update({
+                    status: 'cancelled',
+                    cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    cancelledBy: currentUser.uid,
+                    cancellationReason: reason || 'Non spécifié'
+                });
+                
+                alert('✅ Commande annulée');
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        async function showOrderDetails(orderId) {
+            const doc = await db.collection('orders').doc(orderId).get();
+            if (!doc.exists) {
+                alert('❌ Commande non trouvée');
+                return;
+            }
+            
+            const order = doc.data();
+            const createdAt = order.createdAt ? new Date(order.createdAt.toDate()).toLocaleString('fr-FR') : 'N/A';
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'orderDetailsModal';
+            
+            const statusBadges = {
+                'pending': '<span class="badge badge-warning">En attente</span>',
+                'preparing': '<span class="badge badge-info">En préparation</span>',
+                'ready': '<span class="badge badge-success">Prêt</span>',
+                'served': '<span class="badge badge-secondary">Servi</span>',
+                'paid': '<span class="badge badge-success">Payé</span>',
+                'cancelled': '<span class="badge badge-danger">Annulé</span>'
+            };
+            
+            const itemsList = order.items.map((item, i) => `
+                <div style="padding: var(--spacing-md); background: var(--gray-50); border-radius: var(--radius); margin-bottom: var(--spacing-sm);">
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <strong>${i + 1}. ${item.itemName}</strong>
+                            ${item.displayName && item.displayName !== item.itemName ? `<br><small class="text-muted">${item.displayName}</small>` : ''}
+                        </div>
+                        <div style="text-align: right;">
+                            <div><strong>×${item.quantity}</strong></div>
+                            <div class="text-muted">${item.price.toLocaleString()} F</div>
+                        </div>
+                    </div>
+                    ${item.toppings && item.toppings.length > 0 ? `
+                        <div style="margin-top: var(--spacing-sm); color: var(--text-secondary); font-size: 0.875rem;">
+                            🍔 Toppings: ${item.toppings.join(', ')}
+                        </div>
+                    ` : ''}
+                    ${item.sauce ? `
+                        <div style="margin-top: var(--spacing-xs); color: var(--text-secondary); font-size: 0.875rem;">
+                            🥫 Sauce: ${item.sauce}
+                        </div>
+                    ` : ''}
+                    ${item.notes ? `
+                        <div style="margin-top: var(--spacing-xs); color: var(--text-secondary); font-size: 0.875rem;">
+                            📝 Note: ${item.notes}
+                        </div>
+                    ` : ''}
+                    ${item.components && item.components.length > 0 ? `
+                        <div style="margin-top: var(--spacing-sm); padding: var(--spacing-sm); background: white; border-radius: var(--radius-sm); font-size: 0.875rem;">
+                            <strong>🧩 Composants:</strong><br>
+                            ${item.components.map(c => `• ${c.itemName} (${c.quantity} ${c.unit || ''})`).join('<br>')}
+                        </div>
+                    ` : ''}
+                    <div style="text-align: right; margin-top: var(--spacing-sm); font-weight: 600;">
+                        Sous-total: ${(item.price * item.quantity).toLocaleString()} F
+                    </div>
+                </div>
+            `).join('');
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2>📋 Détails de la commande</h2>
+                        <span class="modal-close" onclick="closeOrderDetailsModal()">✕</span>
+                    </div>
+                    <div class="modal-body">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: linear-gradient(135deg, ${order.establishmentId === 'Le_Sha' ? '#667eea, #764ba2' : '#f59e0b, #f97316'}); color: white; border-radius: var(--radius);">
+                            <div>
+                                <div style="font-size: 0.875rem; opacity: 0.9;">Établissement</div>
+                                <strong>🏪 ${order.establishmentId === 'Le_Sha' ? 'Le Sha' : 'Le Shiba'}</strong>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.875rem; opacity: 0.9;">Table</div>
+                                <strong>🪑 ${order.tableNumber || 'N/A'}</strong>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.875rem; opacity: 0.9;">Créée le</div>
+                                <strong>📅 ${createdAt}</strong>
+                            </div>
+                            <div>
+                                <div style="font-size: 0.875rem; opacity: 0.9;">Statut</div>
+                                ${statusBadges[order.status] || order.status}
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin-bottom: var(--spacing-md);">📦 Articles (${order.items.length})</h4>
+                        <div style="max-height: 50vh; overflow-y: auto; margin-bottom: var(--spacing-lg);">
+                            ${itemsList}
+                        </div>
+                        
+                        <div style="background: var(--gray-100); padding: var(--spacing-md); border-radius: var(--radius);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm);">
+                                <span>Sous-total HT:</span>
+                                <strong>${((order.totalAmount || 0) / 1.1).toFixed(0).toLocaleString()} F</strong>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-sm); color: var(--text-secondary);">
+                                <span>TVA (10%):</span>
+                                <span>${((order.totalAmount || 0) - (order.totalAmount || 0) / 1.1).toFixed(0).toLocaleString()} F</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 1.25rem; padding-top: var(--spacing-sm); border-top: 2px solid var(--gray-300);">
+                                <strong>Total TTC:</strong>
+                                <strong style="color: var(--primary);">${(order.totalAmount || 0).toLocaleString()} F</strong>
+                            </div>
+                        </div>
+                        
+                        ${order.paymentMethod ? `
+                            <div style="margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--success-light); border-radius: var(--radius);">
+                                <strong>💳 Mode de paiement:</strong> ${
+                                    order.paymentMethod === 'cash' ? '💵 Espèces' :
+                                    order.paymentMethod === 'card' ? '💳 Carte bancaire' :
+                                    order.paymentMethod === 'check' ? '📝 Chèque' : order.paymentMethod
+                                }
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeOrderDetailsModal()">Fermer</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        function closeOrderDetailsModal() {
+            const modal = document.getElementById('orderDetailsModal');
+            if (modal) modal.remove();
+        }
+        
+        async function updateOrderStatus(orderId, newStatus) {
+            await db.collection('orders').doc(orderId).update({
+                status: newStatus,
+                [`${newStatus}At`]: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        
+        // ============================================
+        // POINT DE VENTE
+        // ============================================
+        function renderPOS(establishment) {
+            // Charger automatiquement les articles pour l'établissement
+            setTimeout(() => loadPOSItems(establishment), 100);
+            
+            const establishmentName = establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba';
+            const establishmentColor = establishment === 'Le_Sha' ? '#667eea' : '#f59e0b';
+            
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
+                    <div>
+                        <h1>💳 Point de Vente</h1>
+                        <div style="display: inline-block; background: ${establishmentColor}; color: white; padding: 0.5rem 1rem; border-radius: var(--radius); font-weight: 700; margin-top: 0.5rem;">
+                            🏪 ${establishmentName}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="navigateTo('${establishment === 'Le_Sha' ? 'pos-shiba' : 'pos-sha'}')">
+                        🔄 Changer d'établissement
+                    </button>
+                </div>
+                
+                <div class="pos-layout">
+                    <div>
+                        <div style="display: flex; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+                            <input type="text" id="searchItems" class="form-control" placeholder="🔍 Rechercher..." oninput="filterPOSItems()">
+                            <select id="categoryFilter" class="form-control" style="max-width: 200px;" onchange="filterPOSItems()">
+                                <option value="">Toutes catégories</option>
+                            </select>
+                        </div>
+                        <div class="items-grid" id="itemsGrid">
+                            <p class="text-muted text-center">Chargement des articles...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="cart-sidebar">
+                        <div>
+                            <h3>Commande - ${establishmentName}</h3>
+                            <div class="form-group">
+                                <label>N° Table</label>
+                                <input type="text" id="tableNumber" class="form-control" placeholder="Ex: 12">
+                            </div>
+                            <div class="form-group">
+                                <label>Notes (optionnel)</label>
+                                <textarea id="orderNotes" class="form-control" rows="2" placeholder="Instructions spéciales..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="cart-items" id="cartItems">
+                            <p class="text-muted text-center">Panier vide</p>
+                        </div>
+                        
+                        <div>
+                            <div style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-sm);">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span>Sous-total HT</span>
+                                    <strong id="cartSubtotal">0 F</strong>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
+                                    <span>TVA (10%)</span>
+                                    <strong id="cartTax">0 F</strong>
+                                </div>
+                            </div>
+                            <div class="cart-total" id="cartTotal">Total: 0 F</div>
+                            <button class="btn btn-success" style="width: 100%; padding: var(--spacing-lg); font-size: 1.1rem;" onclick="processOrder('${establishment}')">
+                                ✓ Valider la Commande
+                            </button>
+                            <button class="btn btn-danger" style="width: 100%; padding: var(--spacing-sm); margin-top: var(--spacing-sm);" onclick="clearCart()">
+                                🗑️ Vider le panier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function loadPOSItems(establishment) {
+            if (!establishment) return;
+            
+            currentEstablishment = establishment;
+            
+            const snapshot = await db.collection('items')
+                .where('establishments', 'array-contains', establishment)
+                .where('active', '==', true)
+                .where('type', '==', 'finished')
+                .get();
+            
+            allItems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Extraire les catégories uniques
+            const categories = [...new Set(allItems.map(item => item.category).filter(Boolean))];
+            const categoryFilter = document.getElementById('categoryFilter');
+            if (categoryFilter) {
+                categoryFilter.innerHTML = '<option value="">Toutes catégories</option>' +
+                    categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            }
+            
+            renderPOSItems(allItems);
+        }
+        
+        function renderPOSItems(items) {
+            const grid = document.getElementById('itemsGrid');
+            
+            if (items.length === 0) {
+                grid.innerHTML = '<p class="text-muted text-center">Aucun article disponible</p>';
+                return;
+            }
+            
+            grid.innerHTML = items.map(item => `
+                <div class="item-card" onclick='showCustomizationModal(${JSON.stringify(item).replace(/'/g, "&apos;")})'>
+                    <div class="item-name">${item.name}</div>
+                    <div class="text-muted" style="font-size: 0.875rem; margin: 0.5rem 0;">${item.category}</div>
+                    <div class="item-price">${item.price.toLocaleString()} F</div>
+                    ${item.customizable ? '<div style="font-size: 0.75rem; color: var(--primary); margin-top: 0.5rem;">⚙️ Personnalisable</div>' : ''}
+                </div>
+            `).join('');
+        }
+        
+        function filterPOSItems() {
+            const search = document.getElementById('searchItems').value.toLowerCase();
+            const category = document.getElementById('categoryFilter').value;
+            
+            const filtered = allItems.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(search) ||
+                                   item.category.toLowerCase().includes(search);
+                const matchCategory = !category || item.category === category;
+                return matchSearch && matchCategory;
+            });
+            renderPOSItems(filtered);
+        }
+        
+        // ============================================
+        // CUSTOMIZATION MODAL
+        // ============================================
+        const availableToppings = [
+            { id: 'cheese', name: 'Fromage', price: 200 },
+            { id: 'bacon', name: 'Bacon', price: 300 },
+            { id: 'egg', name: 'Œuf', price: 150 },
+            { id: 'avocado', name: 'Avocat', price: 350 },
+            { id: 'onions', name: 'Oignons', price: 100 },
+            { id: 'tomato', name: 'Tomate', price: 100 },
+            { id: 'pickles', name: 'Cornichons', price: 100 },
+            { id: 'jalapeno', name: 'Jalapeño', price: 150 },
+            { id: 'mushroom', name: 'Champignons', price: 200 }
+        ];
+        
+        const availableSauces = [
+            { id: 'ketchup', name: 'Ketchup' },
+            { id: 'mayo', name: 'Mayonnaise' },
+            { id: 'mustard', name: 'Moutarde' },
+            { id: 'bbq', name: 'BBQ' },
+            { id: 'spicy', name: 'Piquante' },
+            { id: 'sweet-chili', name: 'Sweet Chili' },
+            { id: 'teriyaki', name: 'Teriyaki' },
+            { id: 'none', name: 'Sans sauce' }
+        ];
+        
+        let currentCustomizingItem = null;
+        let selectedToppings = [];
+        let selectedSauce = null;
+        let customNotes = '';
+        
+        function showCustomizationModal(item) {
+            currentCustomizingItem = item;
+            selectedToppings = [];
+            selectedSauce = null;
+            customNotes = '';
+            
+            // Check if item is customizable
+            const isCustomizable = item.customizable || 
+                                  item.category?.toLowerCase().includes('burger') ||
+                                  item.category?.toLowerCase().includes('corn dog') ||
+                                  item.category?.toLowerCase().includes('bao');
+            
+            if (!isCustomizable) {
+                // Add directly without customization
+                addToCart(item);
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'customizationModal';
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h2>🍔 Personnaliser : ${item.name}</h2>
+                        <span class="modal-close" onclick="closeCustomizationModal()">✕</span>
+                    </div>
+                    
+                    <div style="max-height: 60vh; overflow-y: auto;">
+                        <!-- Toppings Section -->
+                        <div class="customization-section">
+                            <h4>🧀 Suppléments (optionnel)</h4>
+                            <div class="topping-grid" id="toppingsGrid">
+                                ${availableToppings.map(topping => `
+                                    <div class="topping-item" onclick="toggleTopping('${topping.id}')">
+                                        <input type="checkbox" id="topping-${topping.id}" onclick="event.stopPropagation(); toggleTopping('${topping.id}')">
+                                        <label for="topping-${topping.id}" style="cursor: pointer; flex: 1;">
+                                            ${topping.name}<br>
+                                            <small style="color: var(--primary);">+${topping.price} F</small>
+                                        </label>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Sauces Section -->
+                        <div class="customization-section">
+                            <h4>🥫 Sauce (choisir une)</h4>
+                            <div class="sauce-selector" id="sauceSelector">
+                                ${availableSauces.map(sauce => `
+                                    <div class="sauce-option" onclick="selectSauce('${sauce.id}')">
+                                        ${sauce.name}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        
+                        <!-- Special Instructions -->
+                        <div class="customization-section">
+                            <h4>📝 Instructions spéciales</h4>
+                            <textarea id="customNotes" class="form-control" rows="3" placeholder="Ex: Sans oignons, bien cuit..." onchange="customNotes = this.value"></textarea>
+                        </div>
+                        
+                        <!-- Price Preview -->
+                        <div class="customization-section" style="background: white; border: 2px solid var(--primary);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Prix de base</div>
+                                    <div id="basePrice" style="font-size: 1.1rem;">${item.price.toLocaleString()} F</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Total</div>
+                                    <div id="totalPrice" style="font-size: 1.5rem; font-weight: 700; color: var(--primary);">${item.price.toLocaleString()} F</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-lg);">
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="closeCustomizationModal()">
+                            Annuler
+                        </button>
+                        <button class="btn btn-success" style="flex: 2;" onclick="addCustomizedToCart()">
+                            ✓ Ajouter au panier
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        function toggleTopping(toppingId) {
+            const checkbox = document.getElementById(`topping-${toppingId}`);
+            const toppingDiv = checkbox.closest('.topping-item');
+            
+            if (selectedToppings.includes(toppingId)) {
+                selectedToppings = selectedToppings.filter(id => id !== toppingId);
+                checkbox.checked = false;
+                toppingDiv.classList.remove('selected');
+            } else {
+                selectedToppings.push(toppingId);
+                checkbox.checked = true;
+                toppingDiv.classList.add('selected');
+            }
+            
+            updateCustomizationPrice();
+        }
+        
+        function selectSauce(sauceId) {
+            selectedSauce = sauceId;
+            
+            // Update UI
+            document.querySelectorAll('.sauce-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+        }
+        
+        function updateCustomizationPrice() {
+            if (!currentCustomizingItem) return;
+            
+            let total = currentCustomizingItem.price;
+            
+            selectedToppings.forEach(toppingId => {
+                const topping = availableToppings.find(t => t.id === toppingId);
+                if (topping) total += topping.price;
+            });
+            
+            const totalPriceEl = document.getElementById('totalPrice');
+            if (totalPriceEl) {
+                totalPriceEl.textContent = total.toLocaleString() + ' F';
+            }
+        }
+        
+        function addCustomizedToCart() {
+            if (!currentCustomizingItem) return;
+            
+            const customizedItem = { ...currentCustomizingItem };
+            
+            // Calculate final price with toppings
+            let finalPrice = customizedItem.price;
+            const toppingDetails = [];
+            
+            selectedToppings.forEach(toppingId => {
+                const topping = availableToppings.find(t => t.id === toppingId);
+                if (topping) {
+                    finalPrice += topping.price;
+                    toppingDetails.push(topping.name);
+                }
+            });
+            
+            // Build customization summary
+            const customization = {
+                toppings: toppingDetails,
+                sauce: selectedSauce ? availableSauces.find(s => s.id === selectedSauce)?.name : null,
+                notes: customNotes
+            };
+            
+            // Create display name
+            let displayName = customizedItem.name;
+            if (toppingDetails.length > 0) {
+                displayName += ` + ${toppingDetails.join(', ')}`;
+            }
+            if (customization.sauce) {
+                displayName += ` (${customization.sauce})`;
+            }
+            
+            // Add to cart with customization
+            const cartItem = {
+                ...customizedItem,
+                price: finalPrice,
+                originalPrice: customizedItem.price,
+                customization: customization,
+                displayName: displayName
+            };
+            
+            addToCart(cartItem);
+            closeCustomizationModal();
+        }
+        
+        function closeCustomizationModal() {
+            const modal = document.getElementById('customizationModal');
+            if (modal) {
+                modal.remove();
+            }
+            currentCustomizingItem = null;
+            selectedToppings = [];
+            selectedSauce = null;
+            customNotes = '';
+        }
+        
+        function addToCart(item) {
+            // Check if same item with same customization exists
+            const existingIndex = cart.findIndex(c => 
+                c.id === item.id && 
+                JSON.stringify(c.customization) === JSON.stringify(item.customization)
+            );
+            
+            if (existingIndex >= 0) {
+                cart[existingIndex].quantity++;
+            } else {
+                cart.push({ ...item, quantity: 1 });
+            }
+            renderCart();
+        }
+        
+        function renderCart() {
+            const container = document.getElementById('cartItems');
+            
+            if (cart.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">Panier vide</p>';
+                document.getElementById('cartSubtotal').textContent = '0 F';
+                document.getElementById('cartTax').textContent = '0 F';
+                document.getElementById('cartTotal').textContent = 'Total: 0 F';
+                return;
+            }
+            
+            container.innerHTML = cart.map((item, index) => {
+                const displayName = item.displayName || item.name;
+                const customInfo = item.customization ? `
+                    <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
+                        ${item.customization.toppings?.length > 0 ? `+ ${item.customization.toppings.join(', ')}` : ''}
+                        ${item.customization.sauce ? ` • ${item.customization.sauce}` : ''}
+                        ${item.customization.notes ? `<br>📝 ${item.customization.notes}` : ''}
+                    </div>
+                ` : '';
+                
+                return `
+                    <div class="cart-item">
+                        <div style="flex: 1;">
+                            <strong>${displayName}</strong>
+                            <div class="text-muted" style="font-size: 0.875rem;">${item.price.toLocaleString()} F × ${item.quantity}</div>
+                            ${customInfo}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-sm" onclick="updateCartQty(${index}, -1)">−</button>
+                            <span style="font-weight: 700;">${item.quantity}</span>
+                            <button class="btn btn-sm" onclick="updateCartQty(${index}, 1)">+</button>
+                            <button class="btn btn-sm btn-danger" onclick="removeFromCart(${index})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = Math.round(subtotal * 0.1);
+            const total = subtotal + tax;
+            
+            document.getElementById('cartSubtotal').textContent = `${subtotal.toLocaleString()} F`;
+            document.getElementById('cartTax').textContent = `${tax.toLocaleString()} F`;
+            document.getElementById('cartTotal').textContent = `Total: ${total.toLocaleString()} F`;
+        }
+        
+        function updateCartQty(index, delta) {
+            cart[index].quantity += delta;
+            if (cart[index].quantity <= 0) {
+                cart.splice(index, 1);
+            }
+            renderCart();
+        }
+        
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+        
+        function clearCart() {
+            if (cart.length === 0) return;
+            
+            if (confirm('Vider le panier ?')) {
+                cart = [];
+                renderCart();
+            }
+        }
+        
+        async function processOrder(establishment) {
+            const tableNumber = document.getElementById('tableNumber').value;
+            const orderNotes = document.getElementById('orderNotes')?.value || '';
+            
+            if (!tableNumber) {
+                alert('Veuillez saisir un numéro de table');
+                return;
+            }
+            
+            if (cart.length === 0) {
+                alert('Le panier est vide');
+                return;
+            }
+            
+            try {
+                const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const total = Math.round(subtotal * 1.1);
+                
+                const orderData = {
+                    tableNumber: tableNumber,
+                    establishmentId: establishment || currentEstablishment,
+                    notes: orderNotes,
+                    items: cart.map(item => ({
+                        itemId: item.id,
+                        itemName: item.displayName || item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        components: item.components || [],
+                        customization: item.customization || null,
+                        originalPrice: item.originalPrice || item.price
+                    })),
+                    status: 'pending',
+                    subtotal: subtotal,
+                    total: total,
+                    createdBy: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                // Créer la commande
+                const orderRef = await db.collection('orders').add(orderData);
+                
+                // Déduire les stocks si BOM configuré
+                for (const cartItem of cart) {
+                    if (cartItem.components && cartItem.components.length > 0) {
+                        for (const component of cartItem.components) {
+                            const stockQuery = await db.collection('stock')
+                                .where('itemId', '==', component.itemId)
+                                .where('establishmentId', '==', establishment || currentEstablishment)
+                                .get();
+                            
+                            if (!stockQuery.empty) {
+                                const stockDoc = stockQuery.docs[0];
+                                const currentStock = stockDoc.data().quantity || 0;
+                                const deduction = component.quantity * cartItem.quantity;
+                                
+                                await stockDoc.ref.update({
+                                    quantity: Math.max(0, currentStock - deduction),
+                                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            }
+                        }
+                    }
+                }
+                
+                alert('✅ Commande enregistrée avec succès !\nTable ' + tableNumber);
+                cart = [];
+                document.getElementById('tableNumber').value = '';
+                if (document.getElementById('orderNotes')) {
+                    document.getElementById('orderNotes').value = '';
+                }
+                renderCart();
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // ============================================
+        // PAIEMENTS
+        // ============================================
+        let paymentsUnsubscribe = null;
+        
+        function renderPayments() {
+            loadPendingOrders();
+            return `
+                <h1>💰 Paiements</h1>
+                <p class="text-muted">Gestion des encaissements</p>
+                
+                <div style="display: grid; grid-template-columns: 350px 1fr; gap: var(--spacing-xl);">
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-md);">
+                            <h3>Tables actives</h3>
+                            <button class="btn btn-sm" onclick="loadPendingOrders()">🔄</button>
+                        </div>
+                        <div id="tablesList">Chargement...</div>
+                    </div>
+                    
+                    <div class="card">
+                        <div id="orderDetail">
+                            <p class="text-muted text-center">Sélectionnez une table</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function loadPendingOrders() {
+            // Désabonner l'ancien listener
+            if (paymentsUnsubscribe) {
+                paymentsUnsubscribe();
+            }
+            
+            // Listener en temps réel - SANS orderBy pour éviter l'erreur d'index
+            paymentsUnsubscribe = db.collection('orders')
+                .where('status', 'in', ['pending', 'preparing', 'ready'])
+                .onSnapshot(snapshot => {
+                    const container = document.getElementById('tablesList');
+                    
+                    if (!container) return;
+                    
+                    if (snapshot.empty) {
+                        container.innerHTML = '<p class="text-muted text-center">Aucune commande en attente</p>';
+                        return;
+                    }
+                    
+                    // Trier côté client
+                    const orders = snapshot.docs
+                        .map(doc => ({ id: doc.id, ...doc.data() }))
+                        .sort((a, b) => {
+                            const aTime = a.createdAt?.toDate() || new Date();
+                            const bTime = b.createdAt?.toDate() || new Date();
+                            return bTime - aTime;
+                        });
+                    
+                    container.innerHTML = orders.map(order => {
+                        const statusBadge = order.status === 'preparing' ? 'badge-info' :
+                                           order.status === 'ready' ? 'badge-success' : 'badge-warning';
+                        const statusText = order.status === 'preparing' ? '👨‍🍳 En préparation' :
+                                          order.status === 'ready' ? '✓ Prêt' : '⏳ En attente';
+                        
+                        return `
+                            <div class="cart-item" onclick="selectOrderForPayment('${order.id}')" style="cursor: pointer;">
+                                <div>
+                                    <strong>Table ${order.tableNumber}</strong>
+                                    <div><span class="badge ${statusBadge}" style="font-size: 0.75rem;">${statusText}</span></div>
+                                    <div class="text-muted" style="font-size: 0.875rem;">${order.establishmentId}</div>
+                                    <div class="text-muted" style="font-size: 0.875rem;">${order.items?.length || 0} articles</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <strong style="color: var(--primary);">${(order.total || 0).toLocaleString()} F</strong>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                });
+        }
+        
+        async function selectOrderForPayment(orderId) {
+            const doc = await db.collection('orders').doc(orderId).get();
+            if (!doc.exists) return;
+            
+            const order = doc.data();
+            const container = document.getElementById('orderDetail');
+            
+            container.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                    <div>
+                        <h2>Table ${order.tableNumber}</h2>
+                        <p class="text-muted">${order.establishmentId}</p>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: var(--spacing-xl);">
+                    ${order.items.map((item, index) => `
+                        <div class="cart-item">
+                            <div>
+                                <strong>${item.itemName}</strong>
+                                <div class="text-muted" style="font-size: 0.875rem;">
+                                    ${item.price} F × ${item.quantity}
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <button class="btn btn-sm" onclick="updateOrderItemQty('${orderId}', ${index}, -1)">−</button>
+                                <span style="font-weight: 700; min-width: 30px; text-align: center;">${item.quantity}</span>
+                                <button class="btn btn-sm" onclick="updateOrderItemQty('${orderId}', ${index}, 1)">+</button>
+                                <button class="btn btn-sm btn-danger" onclick="removeOrderItem('${orderId}', ${index})">🗑️</button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div style="background: var(--gray-50); padding: var(--spacing-lg); border-radius: var(--radius); margin-bottom: var(--spacing-lg);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Sous-total HT</span>
+                        <strong>${(order.subtotal || 0).toLocaleString()} F</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>TVA (10%)</span>
+                        <strong>${Math.round((order.total - order.subtotal) || 0).toLocaleString()} F</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 1.25rem; border-top: 2px solid var(--gray-300); padding-top: 0.5rem; margin-top: 0.5rem;">
+                        <strong>Total TTC</strong>
+                        <strong style="color: var(--primary);">${(order.total || 0).toLocaleString()} F</strong>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md);">
+                    <button class="btn btn-success" style="padding: var(--spacing-lg);" onclick="processPaymentMethod('${orderId}', 'cash')">
+                        💵 Espèces
+                    </button>
+                    <button class="btn btn-primary" style="padding: var(--spacing-lg);" onclick="processPaymentMethod('${orderId}', 'card')">
+                        💳 Carte
+                    </button>
+                    <button class="btn btn-warning" style="padding: var(--spacing-lg); color: white;" onclick="processPaymentMethod('${orderId}', 'check')">
+                        📝 Chèque
+                    </button>
+                </div>
+            `;
+        }
+        
+        async function updateOrderItemQty(orderId, itemIndex, delta) {
+            const docRef = db.collection('orders').doc(orderId);
+            const doc = await docRef.get();
+            const order = doc.data();
+            
+            order.items[itemIndex].quantity += delta;
+            
+            if (order.items[itemIndex].quantity <= 0) {
+                order.items.splice(itemIndex, 1);
+            }
+            
+            if (order.items.length === 0) {
+                await docRef.delete();
+                loadPendingOrders();
+                document.getElementById('orderDetail').innerHTML = '<p class="text-muted text-center">Sélectionnez une table</p>';
+                return;
+            }
+            
+            const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const total = Math.round(subtotal * 1.1);
+            
+            await docRef.update({
+                items: order.items,
+                subtotal: subtotal,
+                total: total
+            });
+            
+            selectOrderForPayment(orderId);
+        }
+        
+        async function removeOrderItem(orderId, itemIndex) {
+            await updateOrderItemQty(orderId, itemIndex, -999);
+        }
+        
+        async function processPaymentMethod(orderId, method) {
+            const docRef = db.collection('orders').doc(orderId);
+            const doc = await docRef.get();
+            const order = doc.data();
+            
+            await db.collection('accountingEntries').add({
+                type: 'revenue',
+                orderId: orderId,
+                amount: order.total,
+                paymentMethod: method,
+                establishmentId: order.establishmentId,
+                description: `Table ${order.tableNumber} - ${method}`,
+                createdBy: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            await docRef.update({
+                status: 'paid',
+                paymentMethod: method,
+                paidAt: firebase.firestore.FieldValue.serverTimestamp(),
+                paidBy: currentUser.uid
+            });
+            
+            alert('✅ Paiement enregistré avec succès !');
+            loadPendingOrders();
+            document.getElementById('orderDetail').innerHTML = '<p class="text-muted text-center">Sélectionnez une table</p>';
+        }
+        
+        // ============================================
+        // ARTICLES
+        // ============================================
+        function renderItems(establishment) {
+            loadItemsList(establishment);
+            
+            const establishmentName = establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba';
+            const establishmentColor = establishment === 'Le_Sha' ? '#667eea' : '#f59e0b';
+            
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
+                    <div>
+                        <h1>📦 Articles</h1>
+                        <div style="display: inline-block; background: ${establishmentColor}; color: white; padding: 0.5rem 1rem; border-radius: var(--radius); font-weight: 700; margin-top: 0.5rem;">
+                            🏪 ${establishmentName}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="navigateTo('${establishment === 'Le_Sha' ? 'items-shiba' : 'items-sha'}')">
+                        🔄 Changer d'établissement
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                        <input type="text" id="searchArticles" class="form-control" style="max-width: 300px;" placeholder="🔍 Rechercher..." oninput="filterArticles()">
+                        <div style="display: flex; gap: var(--spacing-md);">
+                            <select id="typeFilter" class="form-control" style="max-width: 200px;" onchange="filterArticles()">
+                                <option value="">Tous les types</option>
+                                <option value="finished">Articles finis</option>
+                                <option value="raw">Matières premières</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="showAddItemForm('${establishment}')">+ Nouvel Article</button>
+                        </div>
+                    </div>
+                    
+                    <div id="itemsList">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Catégorie</th>
+                                    <th>Prix/Coût</th>
+                                    <th>Type</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsTableBody">
+                                <tr><td colspan="6" class="text-center text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        let allArticles = [];
+        
+        async function loadItemsList(establishment) {
+            const snapshot = await db.collection('items')
+                .where('establishments', 'array-contains', establishment)
+                .get();
+            
+            allArticles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderArticlesList(allArticles);
+        }
+        
+        function renderArticlesList(articles) {
+            const tbody = document.getElementById('itemsTableBody');
+            
+            if (articles.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Aucun article</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = articles.map(item => `
+                <tr>
+                    <td>
+                        <strong>${item.name}</strong>
+                        ${item.customizable ? '<span class="badge badge-info" style="margin-left: 0.5rem; font-size: 0.7rem;">⚙️ Personnalisable</span>' : ''}
+                    </td>
+                    <td>${item.category || 'N/A'}</td>
+                    <td><strong>${(item.price || item.cost || 0).toLocaleString()} F</strong></td>
+                    <td>
+                        <span class="badge ${item.type === 'finished' ? 'badge-success' : 'badge-warning'}">
+                            ${item.type === 'finished' ? '✓ Fini' : item.type === 'raw' ? '🧩 Matière' : 'N/A'}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${item.active ? 'badge-success' : 'badge-danger'}">
+                            ${item.active ? 'Actif' : 'Inactif'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm" onclick="editItem('${item.id}')">✏️</button>
+                        <button class="btn btn-sm btn-danger" onclick="toggleItemStatus('${item.id}', ${!item.active})">
+                            ${item.active ? '🚫' : '✓'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function filterArticles() {
+            const search = document.getElementById('searchArticles').value.toLowerCase();
+            const typeFilter = document.getElementById('typeFilter')?.value;
+            
+            const filtered = allArticles.filter(item => {
+                const matchSearch = item.name.toLowerCase().includes(search) ||
+                    (item.category && item.category.toLowerCase().includes(search)) ||
+                    (item.type && item.type.toLowerCase().includes(search));
+                
+                const matchType = !typeFilter || item.type === typeFilter;
+                
+                return matchSearch && matchType;
+            });
+            renderArticlesList(filtered);
+        }
+        
+        async function showAddItemForm(establishment) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'addItemModal';
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h2>➕ Nouvel Article / Produit Fini</h2>
+                        <span class="modal-close" onclick="closeAddItemModal()">✕</span>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: linear-gradient(135deg, ${establishment === 'Le_Sha' ? '#667eea' : '#f59e0b'}, ${establishment === 'Le_Sha' ? '#764ba2' : '#f97316'}); color: white; border-radius: var(--radius);">
+                            <strong>🏪 ${establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba'}</strong>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Nom de l'article *</label>
+                            <input type="text" id="newItemName" class="form-control" placeholder="Ex: Pad Thai, Tom Yum...">
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                            <div class="form-group">
+                                <label>Catégorie *</label>
+                                <select id="newItemCategory" class="form-control">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="Entrées">Entrées</option>
+                                    <option value="Plats">Plats</option>
+                                    <option value="Soupes">Soupes</option>
+                                    <option value="Salades">Salades</option>
+                                    <option value="Wok">Wok</option>
+                                    <option value="Curry">Curry</option>
+                                    <option value="Desserts">Desserts</option>
+                                    <option value="Boissons">Boissons</option>
+                                    <option value="Autre">Autre</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Prix (F) *</label>
+                                <input type="number" id="newItemPrice" class="form-control" min="0" step="100" placeholder="0">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="newItemDescription" class="form-control" rows="2" placeholder="Description courte du plat..."></textarea>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                            <div class="form-group">
+                                <label>Type *</label>
+                                <select id="newItemType" class="form-control">
+                                    <option value="finished">Produit fini (plat)</option>
+                                    <option value="raw">Matière première</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="unitGroup" style="display: none;">
+                                <label>Unité</label>
+                                <select id="newItemUnit" class="form-control">
+                                    <option value="kg">kg</option>
+                                    <option value="g">g</option>
+                                    <option value="L">L</option>
+                                    <option value="cL">cL</option>
+                                    <option value="unité">unité</option>
+                                    <option value="portion">portion</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="newItemCustomizable">
+                                Article personnalisable (toppings/sauces)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeAddItemModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="saveNewItem('${establishment}')">💾 Créer l'article</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Toggle unit field based on type
+            document.getElementById('newItemType').addEventListener('change', function() {
+                document.getElementById('unitGroup').style.display = this.value === 'raw' ? 'block' : 'none';
+            });
+        }
+        
+        async function saveNewItem(establishment) {
+            const name = document.getElementById('newItemName').value.trim();
+            const category = document.getElementById('newItemCategory').value;
+            const price = parseFloat(document.getElementById('newItemPrice').value);
+            const description = document.getElementById('newItemDescription').value.trim();
+            const type = document.getElementById('newItemType').value;
+            const unit = document.getElementById('newItemUnit').value;
+            const customizable = document.getElementById('newItemCustomizable').checked;
+            
+            if (!name || !category) {
+                alert('❌ Le nom et la catégorie sont obligatoires');
+                return;
+            }
+            
+            if (type === 'finished' && (!price || price <= 0)) {
+                alert('❌ Le prix est obligatoire pour un produit fini');
+                return;
+            }
+            
+            try {
+                const itemData = {
+                    name: name,
+                    category: category,
+                    description: description || '',
+                    type: type,
+                    active: true,
+                    createdBy: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    establishmentId: establishment
+                };
+                
+                if (type === 'finished') {
+                    itemData.price = price;
+                    itemData.customizable = customizable;
+                } else {
+                    itemData.unit = unit;
+                    itemData.isIngredient = true;
+                }
+                
+                const itemRef = await db.collection('items').add(itemData);
+                
+                // Si matière première, créer le stock
+                if (type === 'raw') {
+                    await db.collection('stock').add({
+                        itemId: itemRef.id,
+                        establishmentId: establishment,
+                        quantity: 0,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: currentUser.uid,
+                        lastReason: 'Création initiale'
+                    });
+                }
+                
+                alert(`✅ Article "${name}" créé avec succès !`);
+                closeAddItemModal();
+                
+                // Recharger
+                if (currentPage === 'items-sha') loadItemsList('Le_Sha');
+                if (currentPage === 'items-shiba') loadItemsList('Le_Shiba');
+                
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function closeAddItemModal() {
+            const modal = document.getElementById('addItemModal');
+            if (modal) modal.remove();
+        }
+        
+        async function editItem(itemId) {
+            const doc = await db.collection('items').doc(itemId).get();
+            if (!doc.exists) {
+                alert('❌ Article non trouvé');
+                return;
+            }
+            
+            const item = doc.data();
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'editItemModal';
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h2>✏️ Modifier l'article</h2>
+                        <span class="modal-close" onclick="closeEditItemModal()">✕</span>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--gray-100); border-radius: var(--radius);">
+                            <strong>${item.name}</strong>
+                            <span class="badge badge-${item.type === 'finished' ? 'success' : 'warning'}" style="margin-left: 0.5rem;">
+                                ${item.type === 'finished' ? 'Produit fini' : 'Matière première'}
+                            </span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Nom *</label>
+                            <input type="text" id="editItemName" class="form-control" value="${item.name}">
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                            <div class="form-group">
+                                <label>Catégorie *</label>
+                                <select id="editItemCategory" class="form-control">
+                                    <option value="">Sélectionner...</option>
+                                    ${item.type === 'finished' ? `
+                                        <option value="Entrées" ${item.category === 'Entrées' ? 'selected' : ''}>Entrées</option>
+                                        <option value="Plats" ${item.category === 'Plats' ? 'selected' : ''}>Plats</option>
+                                        <option value="Soupes" ${item.category === 'Soupes' ? 'selected' : ''}>Soupes</option>
+                                        <option value="Salades" ${item.category === 'Salades' ? 'selected' : ''}>Salades</option>
+                                        <option value="Wok" ${item.category === 'Wok' ? 'selected' : ''}>Wok</option>
+                                        <option value="Curry" ${item.category === 'Curry' ? 'selected' : ''}>Curry</option>
+                                        <option value="Desserts" ${item.category === 'Desserts' ? 'selected' : ''}>Desserts</option>
+                                        <option value="Boissons" ${item.category === 'Boissons' ? 'selected' : ''}>Boissons</option>
+                                    ` : `
+                                        <option value="Légumes" ${item.category === 'Légumes' ? 'selected' : ''}>Légumes</option>
+                                        <option value="Viandes" ${item.category === 'Viandes' ? 'selected' : ''}>Viandes</option>
+                                        <option value="Poissons" ${item.category === 'Poissons' ? 'selected' : ''}>Poissons</option>
+                                        <option value="Épicerie" ${item.category === 'Épicerie' ? 'selected' : ''}>Épicerie</option>
+                                        <option value="Produits laitiers" ${item.category === 'Produits laitiers' ? 'selected' : ''}>Produits laitiers</option>
+                                        <option value="Condiments" ${item.category === 'Condiments' ? 'selected' : ''}>Condiments</option>
+                                        <option value="Boissons" ${item.category === 'Boissons' ? 'selected' : ''}>Boissons</option>
+                                    `}
+                                    <option value="Autre" ${item.category === 'Autre' ? 'selected' : ''}>Autre</option>
+                                </select>
+                            </div>
+                            
+                            ${item.type === 'finished' ? `
+                                <div class="form-group">
+                                    <label>Prix (F) *</label>
+                                    <input type="number" id="editItemPrice" class="form-control" value="${item.price || 0}" min="0" step="100">
+                                </div>
+                            ` : `
+                                <div class="form-group">
+                                    <label>Unité</label>
+                                    <select id="editItemUnit" class="form-control">
+                                        <option value="kg" ${item.unit === 'kg' ? 'selected' : ''}>kg</option>
+                                        <option value="g" ${item.unit === 'g' ? 'selected' : ''}>g</option>
+                                        <option value="L" ${item.unit === 'L' ? 'selected' : ''}>L</option>
+                                        <option value="cL" ${item.unit === 'cL' ? 'selected' : ''}>cL</option>
+                                        <option value="unité" ${item.unit === 'unité' ? 'selected' : ''}>unité</option>
+                                        <option value="portion" ${item.unit === 'portion' ? 'selected' : ''}>portion</option>
+                                    </select>
+                                </div>
+                            `}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="editItemDescription" class="form-control" rows="2">${item.description || ''}</textarea>
+                        </div>
+                        
+                        ${item.type === 'finished' ? `
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="editItemCustomizable" ${item.customizable ? 'checked' : ''}>
+                                    Article personnalisable (toppings/sauces)
+                                </label>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeEditItemModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="updateItem('${itemId}', '${item.type}')">💾 Enregistrer</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        async function updateItem(itemId, type) {
+            const name = document.getElementById('editItemName').value.trim();
+            const category = document.getElementById('editItemCategory').value;
+            const description = document.getElementById('editItemDescription').value.trim();
+            
+            if (!name || !category) {
+                alert('❌ Le nom et la catégorie sont obligatoires');
+                return;
+            }
+            
+            try {
+                const updateData = {
+                    name: name,
+                    category: category,
+                    description: description,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                if (type === 'finished') {
+                    const price = parseFloat(document.getElementById('editItemPrice').value);
+                    if (!price || price <= 0) {
+                        alert('❌ Le prix est obligatoire');
+                        return;
+                    }
+                    updateData.price = price;
+                    updateData.customizable = document.getElementById('editItemCustomizable').checked;
+                } else {
+                    updateData.unit = document.getElementById('editItemUnit').value;
+                }
+                
+                await db.collection('items').doc(itemId).update(updateData);
+                
+                alert('✅ Article mis à jour !');
+                closeEditItemModal();
+                
+                // Recharger
+                if (currentPage === 'items-sha') loadItemsList('Le_Sha');
+                if (currentPage === 'items-shiba') loadItemsList('Le_Shiba');
+                
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function closeEditItemModal() {
+            const modal = document.getElementById('editItemModal');
+            if (modal) modal.remove();
+        }
+        
+        async function toggleItemStatus(itemId, newStatus) {
+            if (!confirm(`${newStatus ? 'Activer' : 'Désactiver'} cet article ?`)) return;
+            
+            try {
+                await db.collection('items').doc(itemId).update({
+                    active: newStatus,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('✅ Statut mis à jour !');
+                // Recharger en fonction de la page active
+                if (currentPage === 'items-sha') loadItemsList('Le_Sha');
+                if (currentPage === 'items-shiba') loadItemsList('Le_Shiba');
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // ============================================
+        // STOCKS
+        // ============================================
+        function renderStock(establishment) {
+            const establishmentName = establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba';
+            const establishmentColor = establishment === 'Le_Sha' ? '#667eea' : '#f59e0b';
+            
+            // Charger les données APRÈS le rendu du HTML
+            setTimeout(() => loadStockData(establishment), 0);
+            
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
+                    <div>
+                        <h1>📊 Stocks & Matières Premières</h1>
+                        <div style="display: inline-block; background: ${establishmentColor}; color: white; padding: 0.5rem 1rem; border-radius: var(--radius); font-weight: 700; margin-top: 0.5rem;">
+                            🏪 ${establishmentName}
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="navigateTo('${establishment === 'Le_Sha' ? 'stock-shiba' : 'stock-sha'}')">
+                        🔄 Changer d'établissement
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                        <input type="text" id="searchStock" class="form-control" style="max-width: 300px;" placeholder="🔍 Rechercher..." oninput="filterStock()">
+                        <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+                            <select id="stockStatusFilter" class="form-control" style="max-width: 200px;" onchange="filterStock()">
+                                <option value="">Tous les statuts</option>
+                                <option value="ok">✓ OK</option>
+                                <option value="low">⚡ Faible</option>
+                                <option value="out">⚠️ Rupture</option>
+                            </select>
+                            <button class="btn btn-success" onclick="showBulkStockAdjustment('${establishment}')">
+                                📥 Réception Livraison
+                            </button>
+                            <button class="btn btn-primary" onclick="showAddIngredientModal('${establishment}')">
+                                ➕ Nouveau Ingrédient
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="stockList">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Ingrédient / Matière Première</th>
+                                    <th>Catégorie</th>
+                                    <th>Unité</th>
+                                    <th>Quantité</th>
+                                    <th>Établissement</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stockTableBody">
+                                <tr><td colspan="6" class="text-center text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        let allStockData = [];
+        let allIngredientsMap = {};
+        
+        async function loadStockData(establishment) {
+            if (!establishment) return;
+            
+            const tbody = document.getElementById('stockTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">⏳ Chargement des ingrédients...</td></tr>';
+            
+            // 1. Charger TOUS les ingrédients (matières premières) en UNE SEULE requête
+            if (Object.keys(allIngredientsMap).length === 0) {
+                const ingredientsSnap = await db.collection('items')
+                    .where('type', '==', 'raw')
+                    .where('active', '==', true)
+                    .get();
+                
+                ingredientsSnap.docs.forEach(doc => {
+                    allIngredientsMap[doc.id] = doc.data();
+                });
+            }
+            
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">⏳ Chargement des stocks...</td></tr>';
+            
+            // 2. Charger les stocks pour cet établissement
+            const snapshot = await db.collection('stock')
+                .where('establishmentId', '==', establishment)
+                .get();
+            
+            allStockData = [];
+            
+            // 3. Associer les stocks avec les ingrédients (en mémoire, pas de requête)
+            snapshot.docs.forEach(doc => {
+                const stockData = doc.data();
+                const itemData = allIngredientsMap[stockData.itemId];
+                
+                if (itemData) {
+                    allStockData.push({
+                        id: doc.id,
+                        ...stockData,
+                        itemData: itemData
+                    });
+                }
+            });
+            
+            renderStockList(allStockData);
+        }
+        
+        function renderStockList(stockList) {
+            const tbody = document.getElementById('stockTableBody');
+            
+            if (stockList.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Aucun stock</td></tr>';
+                return;
+            }
+            
+            // Grouper par catégorie
+            const byCategory = {};
+            stockList.forEach(stock => {
+                const cat = stock.itemData.category || 'Non catégorisé';
+                if (!byCategory[cat]) byCategory[cat] = [];
+                byCategory[cat].push(stock);
+            });
+            
+            let html = '';
+            Object.entries(byCategory).sort().forEach(([category, stocks]) => {
+                // Ligne de titre de catégorie
+                html += `
+                    <tr style="background: var(--gray-100);">
+                        <td colspan="6" style="font-weight: 700; font-size: 1.1rem; padding: var(--spacing-md);">
+                            📂 ${category} <span style="color: var(--text-secondary); font-weight: 400; font-size: 0.9rem;">(${stocks.length} articles)</span>
+                        </td>
+                    </tr>
+                `;
+                
+                // Articles de la catégorie
+                stocks.sort((a, b) => a.itemData.name.localeCompare(b.itemData.name)).forEach(stock => {
+                    const item = stock.itemData;
+                    const qty = stock.quantity || 0;
+                    const statusClass = qty === 0 ? 'badge-danger' : qty < 10 ? 'badge-warning' : 'badge-success';
+                    const statusText = qty === 0 ? '⚠️ Rupture' : qty < 10 ? '⚡ Faible' : '✓ OK';
+                    
+                    html += `
+                        <tr>
+                            <td style="padding-left: 2rem;">
+                                <strong>${item.name}</strong>
+                                ${item.isIngredient ? '<span class="badge badge-warning" style="margin-left: 0.5rem; font-size: 0.7rem;">Ingrédient</span>' : ''}
+                            </td>
+                            <td>${item.category || 'N/A'}</td>
+                            <td><strong>${item.unit || 'unité'}</strong></td>
+                            <td>
+                                <strong style="color: ${qty === 0 ? 'var(--danger)' : qty < 10 ? 'var(--warning)' : 'var(--success)'}; font-size: 1.1rem;">
+                                    ${qty}
+                                </strong>
+                            </td>
+                            <td>${stock.establishmentId}</td>
+                            <td>
+                                <span class="badge ${statusClass}">${statusText}</span>
+                                <button class="btn btn-sm" onclick="showStockAdjustment('${stock.id}', '${item.name}', ${qty})" style="margin-left: 0.5rem;">
+                                    ✏️ Ajuster
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            });
+            
+            tbody.innerHTML = html;
+        }
+        
+        async function showStockAdjustment(stockId, itemName, currentQty) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'stockAdjustModal';
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h2>📊 Ajuster le stock</h2>
+                        <span class="modal-close" onclick="closeStockAdjustModal()">✕</span>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--gray-100); border-radius: var(--radius);">
+                            <strong style="font-size: 1.1rem;">${itemName}</strong><br>
+                            <span class="text-muted">Stock actuel: <strong>${currentQty}</strong></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Type d'opération</label>
+                            <select id="operationType" class="form-control" onchange="updateOperationFields()">
+                                <option value="set">Définir la quantité</option>
+                                <option value="add">Ajouter (livraison)</option>
+                                <option value="remove">Retirer (correction)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label id="qtyLabel">Nouvelle quantité</label>
+                            <input type="number" id="qtyInput" class="form-control" value="${currentQty}" min="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Motif (optionnel)</label>
+                            <input type="text" id="reasonInput" class="form-control" placeholder="Ex: Livraison fournisseur, Inventaire...">
+                        </div>
+                        
+                        <div id="previewResult" style="margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--info-light); border-radius: var(--radius); display: none;">
+                            <strong>Nouveau stock:</strong> <span id="previewQty">—</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeStockAdjustModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="saveStockAdjustment('${stockId}', ${currentQty})">💾 Enregistrer</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Update preview on input
+            document.getElementById('qtyInput').addEventListener('input', updateStockPreview);
+            document.getElementById('operationType').addEventListener('change', updateStockPreview);
+            
+            function updateStockPreview() {
+                const opType = document.getElementById('operationType').value;
+                const inputVal = parseInt(document.getElementById('qtyInput').value) || 0;
+                const preview = document.getElementById('previewResult');
+                const previewQty = document.getElementById('previewQty');
+                
+                let finalQty = currentQty;
+                if (opType === 'set') {
+                    finalQty = inputVal;
+                    document.getElementById('qtyLabel').textContent = 'Nouvelle quantité';
+                } else if (opType === 'add') {
+                    finalQty = currentQty + inputVal;
+                    document.getElementById('qtyLabel').textContent = 'Quantité à ajouter';
+                } else if (opType === 'remove') {
+                    finalQty = Math.max(0, currentQty - inputVal);
+                    document.getElementById('qtyLabel').textContent = 'Quantité à retirer';
+                }
+                
+                preview.style.display = 'block';
+                previewQty.textContent = finalQty;
+                previewQty.style.color = finalQty === 0 ? 'var(--danger)' : finalQty < 10 ? 'var(--warning)' : 'var(--success)';
+            }
+            
+            updateStockPreview();
+        }
+        
+        async function saveStockAdjustment(stockId, currentQty) {
+            const opType = document.getElementById('operationType').value;
+            const inputVal = parseInt(document.getElementById('qtyInput').value) || 0;
+            const reason = document.getElementById('reasonInput').value;
+            
+            let finalQty = currentQty;
+            if (opType === 'set') {
+                finalQty = inputVal;
+            } else if (opType === 'add') {
+                finalQty = currentQty + inputVal;
+            } else if (opType === 'remove') {
+                finalQty = Math.max(0, currentQty - inputVal);
+            }
+            
+            if (finalQty < 0) {
+                alert('❌ La quantité ne peut pas être négative');
+                return;
+            }
+            
+            try {
+                await db.collection('stock').doc(stockId).update({
+                    quantity: finalQty,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                    updatedBy: currentUser.uid,
+                    lastReason: reason || 'Ajustement manuel'
+                });
+                
+                // Log movement
+                await db.collection('stockMovements').add({
+                    stockId: stockId,
+                    operationType: opType,
+                    previousQty: currentQty,
+                    change: opType === 'set' ? (finalQty - currentQty) : inputVal,
+                    newQty: finalQty,
+                    reason: reason || 'Ajustement manuel',
+                    createdBy: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('✅ Stock mis à jour !');
+                closeStockAdjustModal();
+                
+                // Recharger la page stock actuelle
+                if (currentPage === 'stock-sha') loadStockData('Le_Sha');
+                if (currentPage === 'stock-shiba') loadStockData('Le_Shiba');
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        function closeStockAdjustModal() {
+            const modal = document.getElementById('stockAdjustModal');
+            if (modal) modal.remove();
+        }
+        
+        async function showBulkStockAdjustment(establishment) {
+            // Charger tous les ingrédients
+            const ingredientsSnap = await db.collection('items')
+                .where('type', '==', 'raw')
+                .where('active', '==', true)
+                .orderBy('category')
+                .orderBy('name')
+                .get();
+            
+            const ingredients = ingredientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            if (ingredients.length === 0) {
+                alert('⚠️ Aucun ingrédient disponible');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'bulkStockModal';
+            
+            // Grouper par catégorie
+            const byCategory = {};
+            ingredients.forEach(ing => {
+                const cat = ing.category || 'Non catégorisé';
+                if (!byCategory[cat]) byCategory[cat] = [];
+                byCategory[cat].push(ing);
+            });
+            
+            let ingredientsList = '';
+            Object.entries(byCategory).sort().forEach(([category, ings]) => {
+                ingredientsList += `
+                    <div style="margin-bottom: var(--spacing-lg);">
+                        <h4 style="color: var(--primary); margin-bottom: var(--spacing-md);">📂 ${category}</h4>
+                        <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+                `;
+                
+                ings.forEach(ing => {
+                    ingredientsList += `
+                        <div style="display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-sm); background: white; border: 2px solid var(--gray-200); border-radius: var(--radius);">
+                            <input type="checkbox" id="bulk-${ing.id}" onchange="toggleBulkIngredient('${ing.id}')">
+                            <label for="bulk-${ing.id}" style="flex: 1; cursor: pointer;">
+                                <strong>${ing.name}</strong>
+                                <span class="text-muted" style="font-size: 0.875rem; margin-left: 0.5rem;">(${ing.unit || 'unité'})</span>
+                            </label>
+                            <input type="number" id="bulk-qty-${ing.id}" class="form-control" style="max-width: 120px;" placeholder="Quantité" min="0" disabled>
+                        </div>
+                    `;
+                });
+                
+                ingredientsList += '</div></div>';
+            });
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h2>📥 Réception de Livraison</h2>
+                        <span class="modal-close" onclick="closeBulkStockModal()">✕</span>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: linear-gradient(135deg, ${establishment === 'Le_Sha' ? '#667eea' : '#f59e0b'}, ${establishment === 'Le_Sha' ? '#764ba2' : '#f97316'}); color: white; border-radius: var(--radius);">
+                            <strong style="font-size: 1.1rem;">🏪 ${establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba'}</strong>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Motif / N° Bon de livraison</label>
+                            <input type="text" id="bulkReason" class="form-control" placeholder="Ex: BL-2024-001, Livraison Metro...">
+                        </div>
+                        
+                        <div style="max-height: 50vh; overflow-y: auto; margin-top: var(--spacing-lg);">
+                            ${ingredientsList}
+                        </div>
+                        
+                        <div id="bulkSummary" style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background: var(--info-light); border-radius: var(--radius); display: none;">
+                            <strong>Articles sélectionnés:</strong> <span id="bulkCount">0</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeBulkStockModal()">Annuler</button>
+                        <button class="btn btn-success" onclick="saveBulkStockAdjustment('${establishment}')" id="bulkSaveBtn" disabled>📥 Enregistrer Livraison</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            window.bulkSelectedIngredients = new Set();
+            
+            window.toggleBulkIngredient = function(ingId) {
+                const checkbox = document.getElementById(`bulk-${ingId}`);
+                const qtyInput = document.getElementById(`bulk-qty-${ingId}`);
+                
+                if (checkbox.checked) {
+                    qtyInput.disabled = false;
+                    qtyInput.focus();
+                    window.bulkSelectedIngredients.add(ingId);
+                } else {
+                    qtyInput.disabled = true;
+                    qtyInput.value = '';
+                    window.bulkSelectedIngredients.delete(ingId);
+                }
+                
+                updateBulkSummary();
+            };
+            
+            function updateBulkSummary() {
+                const count = window.bulkSelectedIngredients.size;
+                document.getElementById('bulkCount').textContent = count;
+                document.getElementById('bulkSummary').style.display = count > 0 ? 'block' : 'none';
+                document.getElementById('bulkSaveBtn').disabled = count === 0;
+            }
+        }
+        
+        async function saveBulkStockAdjustment(establishment) {
+            const reason = document.getElementById('bulkReason').value || 'Livraison';
+            const updates = [];
+            
+            for (const ingId of window.bulkSelectedIngredients) {
+                const qtyInput = document.getElementById(`bulk-qty-${ingId}`);
+                const qty = parseInt(qtyInput.value);
+                
+                if (!qty || qty <= 0) {
+                    alert(`❌ Veuillez saisir une quantité valide pour tous les articles sélectionnés`);
+                    return;
+                }
+                
+                updates.push({ ingId, qty });
+            }
+            
+            if (updates.length === 0) {
+                alert('❌ Aucun article sélectionné');
+                return;
+            }
+            
+            try {
+                const batch = db.batch();
+                
+                for (const { ingId, qty } of updates) {
+                    // Chercher ou créer le stock
+                    const stockQuery = await db.collection('stock')
+                        .where('itemId', '==', ingId)
+                        .where('establishmentId', '==', establishment)
+                        .get();
+                    
+                    let stockRef;
+                    let currentQty = 0;
+                    
+                    if (stockQuery.empty) {
+                        // Créer nouveau stock
+                        stockRef = db.collection('stock').doc();
+                        batch.set(stockRef, {
+                            itemId: ingId,
+                            establishmentId: establishment,
+                            quantity: qty,
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedBy: currentUser.uid,
+                            lastReason: reason
+                        });
+                    } else {
+                        // Mettre à jour stock existant
+                        const stockDoc = stockQuery.docs[0];
+                        stockRef = stockDoc.ref;
+                        currentQty = stockDoc.data().quantity || 0;
+                        
+                        batch.update(stockRef, {
+                            quantity: currentQty + qty,
+                            lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                            updatedBy: currentUser.uid,
+                            lastReason: reason
+                        });
+                    }
+                    
+                    // Log movement
+                    const movementRef = db.collection('stockMovements').doc();
+                    batch.set(movementRef, {
+                        stockId: stockRef.id,
+                        itemId: ingId,
+                        establishmentId: establishment,
+                        operationType: 'add',
+                        previousQty: currentQty,
+                        change: qty,
+                        newQty: currentQty + qty,
+                        reason: reason,
+                        createdBy: currentUser.uid,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+                
+                await batch.commit();
+                
+                alert(`✅ Livraison enregistrée !\n${updates.length} article(s) ajouté(s) au stock.`);
+                closeBulkStockModal();
+                
+                // Recharger
+                if (currentPage === 'stock-sha') loadStockData('Le_Sha');
+                if (currentPage === 'stock-shiba') loadStockData('Le_Shiba');
+                
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function closeBulkStockModal() {
+            const modal = document.getElementById('bulkStockModal');
+            if (modal) modal.remove();
+            window.bulkSelectedIngredients = null;
+        }
+        
+        async function showAddIngredientModal(establishment) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'addIngredientModal';
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2>➕ Nouveau Ingrédient / Matière Première</h2>
+                        <span class="modal-close" onclick="closeAddIngredientModal()">✕</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Nom de l'ingrédient *</label>
+                            <input type="text" id="newIngName" class="form-control" placeholder="Ex: Farine, Huile d'olive...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Catégorie</label>
+                            <select id="newIngCategory" class="form-control">
+                                <option value="">Sélectionner...</option>
+                                <option value="Légumes">Légumes</option>
+                                <option value="Viandes">Viandes</option>
+                                <option value="Poissons">Poissons</option>
+                                <option value="Épicerie">Épicerie</option>
+                                <option value="Produits laitiers">Produits laitiers</option>
+                                <option value="Condiments">Condiments</option>
+                                <option value="Boissons">Boissons</option>
+                                <option value="Autre">Autre</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Unité de mesure *</label>
+                            <select id="newIngUnit" class="form-control">
+                                <option value="kg">Kilogramme (kg)</option>
+                                <option value="g">Gramme (g)</option>
+                                <option value="L">Litre (L)</option>
+                                <option value="cL">Centilitre (cL)</option>
+                                <option value="unité">Unité</option>
+                                <option value="portion">Portion</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Quantité initiale</label>
+                            <input type="number" id="newIngQty" class="form-control" value="0" min="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Établissement</label>
+                            <select id="newIngEstablishment" class="form-control">
+                                <option value="${establishment}" selected>${establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba'}</option>
+                                <option value="${establishment === 'Le_Sha' ? 'Le_Shiba' : 'Le_Sha'}">${establishment === 'Le_Sha' ? 'Le Shiba' : 'Le Sha'}</option>
+                                <option value="both">Les deux établissements</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeAddIngredientModal()">Annuler</button>
+                        <button class="btn btn-primary" onclick="saveNewIngredient()">💾 Créer l'ingrédient</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        async function saveNewIngredient() {
+            const name = document.getElementById('newIngName').value.trim();
+            const category = document.getElementById('newIngCategory').value;
+            const unit = document.getElementById('newIngUnit').value;
+            const qty = parseInt(document.getElementById('newIngQty').value) || 0;
+            const establishment = document.getElementById('newIngEstablishment').value;
+            
+            if (!name) {
+                alert('❌ Le nom est obligatoire');
+                return;
+            }
+            
+            try {
+                // Créer l'ingrédient
+                const itemRef = await db.collection('items').add({
+                    name: name,
+                    category: category || 'Non catégorisé',
+                    unit: unit,
+                    type: 'raw',
+                    isIngredient: true,
+                    active: true,
+                    createdBy: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Créer le(s) stock(s)
+                const establishments = establishment === 'both' ? ['Le_Sha', 'Le_Shiba'] : [establishment];
+                
+                for (const estab of establishments) {
+                    await db.collection('stock').add({
+                        itemId: itemRef.id,
+                        establishmentId: estab,
+                        quantity: qty,
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: currentUser.uid,
+                        lastReason: 'Création initiale'
+                    });
+                }
+                
+                alert(`✅ Ingrédient "${name}" créé avec succès !`);
+                closeAddIngredientModal();
+                
+                // Recharger et vider le cache
+                allIngredientsMap = {};
+                if (currentPage === 'stock-sha') loadStockData('Le_Sha');
+                if (currentPage === 'stock-shiba') loadStockData('Le_Shiba');
+                
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+                console.error(error);
+            }
+        }
+        
+        function closeAddIngredientModal() {
+            const modal = document.getElementById('addIngredientModal');
+            if (modal) modal.remove();
+        }
+        
+        function filterStock() {
+            const search = document.getElementById('searchStock').value.toLowerCase();
+            const statusFilter = document.getElementById('stockStatusFilter')?.value;
+            
+            const filtered = allStockData.filter(stock => {
+                const matchSearch = stock.itemData.name.toLowerCase().includes(search) ||
+                    (stock.itemData.category && stock.itemData.category.toLowerCase().includes(search));
+                
+                let matchStatus = true;
+                if (statusFilter) {
+                    const qty = stock.quantity || 0;
+                    if (statusFilter === 'ok' && qty < 10) matchStatus = false;
+                    if (statusFilter === 'low' && (qty === 0 || qty >= 10)) matchStatus = false;
+                    if (statusFilter === 'out' && qty !== 0) matchStatus = false;
+                }
+                
+                return matchSearch && matchStatus;
+            });
+            renderStockList(filtered);
+        }
+        
+        function showBulkStockAdjustment(establishment) {
+            alert(`Réception de livraison pour ${establishment} - À implémenter\n\nFonctionnalité : Scanner ou saisir plusieurs articles d'un coup avec leurs quantités reçues.`);
+        }
+        
+        // ============================================
+        // RECETTES (BILL OF MATERIALS)
+        // ============================================
+        function renderRecipes() {
+            loadRecipesList();
+            return `
+                <h1>📖 Recettes - Bill of Materials (BOM)</h1>
+                <p class="text-muted">Configurez les ingrédients nécessaires pour chaque plat. Les stocks seront automatiquement déduits lors des ventes.</p>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                        <div style="display: flex; gap: var(--spacing-md);">
+                            <input type="text" id="searchRecipes" class="form-control" style="max-width: 300px;" placeholder="🔍 Rechercher un plat..." oninput="filterRecipes()">
+                            <select id="recipeEstablishment" class="form-control" style="max-width: 200px;" onchange="filterRecipes()">
+                                <option value="">Tous les établissements</option>
+                                <option value="Le_Sha">Le Sha</option>
+                                <option value="Le_Shiba">Le Shiba</option>
+                            </select>
+                            <select id="recipeStatus" class="form-control" style="max-width: 200px;" onchange="filterRecipes()">
+                                <option value="all">Tous</option>
+                                <option value="configured">✓ Configurés</option>
+                                <option value="missing">⚠️ Non configurés</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div id="recipesList">
+                        <div class="text-center text-muted">Chargement...</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        let allRecipes = [];
+        
+        async function loadRecipesList() {
+            const snapshot = await db.collection('items')
+                .where('type', '==', 'finished')
+                .where('active', '==', true)
+                .get();
+            
+            allRecipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderRecipesList(allRecipes);
+        }
+        
+        function renderRecipesList(recipes) {
+            const container = document.getElementById('recipesList');
+            
+            if (recipes.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center">Aucun plat trouvé</p>';
+                return;
+            }
+            
+            container.innerHTML = recipes.map(recipe => {
+                const hasComponents = recipe.components && recipe.components.length > 0;
+                const establishments = recipe.establishments?.join(', ') || 'N/A';
+                
+                return `
+                    <div class="card" style="margin-bottom: var(--spacing-md);">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div style="flex: 1;">
+                                <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-sm);">
+                                    <h3 style="margin: 0;">${recipe.name}</h3>
+                                    <span class="badge ${hasComponents ? 'badge-success' : 'badge-warning'}">
+                                        ${hasComponents ? '✓ Recette configurée' : '⚠️ Non configurée'}
+                                    </span>
+                                    <span class="badge badge-info">${recipe.category}</span>
+                                </div>
+                                <div class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--spacing-md);">
+                                    🏪 ${establishments} • 💰 ${recipe.price?.toLocaleString() || 0} F
+                                </div>
+                                
+                                ${hasComponents ? `
+                                    <div style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-md);">
+                                        <strong style="display: block; margin-bottom: var(--spacing-sm);">🧩 Ingrédients nécessaires :</strong>
+                                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--spacing-sm);">
+                                            ${recipe.components.map(comp => `
+                                                <div style="padding: var(--spacing-sm); background: white; border-radius: var(--radius); border-left: 3px solid var(--primary);">
+                                                    <strong>${comp.itemName}</strong>
+                                                    <div class="text-muted" style="font-size: 0.875rem;">Quantité: ${comp.quantity}</div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div style="padding: var(--spacing-md); background: #fff3cd; border-radius: var(--radius); border-left: 4px solid var(--warning);">
+                                        ⚠️ Aucun ingrédient configuré. Les stocks ne seront pas déduits automatiquement.
+                                    </div>
+                                `}
+                            </div>
+                            
+                            <div style="display: flex; flex-direction: column; gap: var(--spacing-sm); margin-left: var(--spacing-lg);">
+                                <button class="btn btn-primary btn-sm" onclick="editRecipe('${recipe.id}')">
+                                    ${hasComponents ? '✏️ Modifier' : '➕ Configurer'}
+                                </button>
+                                ${hasComponents ? `
+                                    <button class="btn btn-sm btn-danger" onclick="clearRecipe('${recipe.id}')">
+                                        🗑️ Supprimer
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function filterRecipes() {
+            const search = document.getElementById('searchRecipes').value.toLowerCase();
+            const establishment = document.getElementById('recipeEstablishment').value;
+            const status = document.getElementById('recipeStatus').value;
+            
+            const filtered = allRecipes.filter(recipe => {
+                const matchSearch = recipe.name.toLowerCase().includes(search) ||
+                    (recipe.category && recipe.category.toLowerCase().includes(search));
+                
+                const matchEstablishment = !establishment || 
+                    (recipe.establishments && recipe.establishments.includes(establishment));
+                
+                let matchStatus = true;
+                if (status === 'configured') {
+                    matchStatus = recipe.components && recipe.components.length > 0;
+                } else if (status === 'missing') {
+                    matchStatus = !recipe.components || recipe.components.length === 0;
+                }
+                
+                return matchSearch && matchEstablishment && matchStatus;
+            });
+            
+            renderRecipesList(filtered);
+        }
+        
+        async function editRecipe(itemId) {
+            try {
+                const itemDoc = await db.collection('items').doc(itemId).get();
+                if (!itemDoc.exists) {
+                    alert('❌ Article non trouvé');
+                    return;
+                }
+                
+                const item = itemDoc.data();
+                const currentComponents = item.components || [];
+                
+                // Charger UNIQUEMENT les ingrédients (matières premières, type:'raw')
+                // PAS les produits finis (type:'finished')
+                const ingredientsSnap = await db.collection('items')
+                    .where('type', '==', 'raw')
+                    .where('active', '==', true)
+                    .get();
+                
+                // Trier côté client au lieu de Firestore (évite les problèmes d'index)
+                const ingredients = ingredientsSnap.docs
+                    .map(doc => ({ id: doc.id, ...doc.data() }))
+                    .sort((a, b) => {
+                        const catCompare = (a.category || '').localeCompare(b.category || '');
+                        if (catCompare !== 0) return catCompare;
+                        return (a.name || '').localeCompare(b.name || '');
+                    });
+                
+                if (ingredients.length === 0) {
+                    alert('⚠️ Aucun ingrédient trouvé. Veuillez d\'abord créer des matières premières (type: raw) dans la page Stocks.');
+                    return;
+                }
+                
+                // Grouper par catégorie
+                const byCategory = {};
+                ingredients.forEach(ing => {
+                    const cat = ing.category || 'Non catégorisé';
+                    if (!byCategory[cat]) byCategory[cat] = [];
+                    byCategory[cat].push(ing);
+                });
+                
+                let ingredientsHTML = '';
+                Object.entries(byCategory).sort().forEach(([category, ings]) => {
+                    ingredientsHTML += `
+                        <div style="margin-bottom: var(--spacing-lg);">
+                            <h4 style="color: var(--primary); margin-bottom: var(--spacing-sm); font-size: 1rem;">📂 ${category}</h4>
+                            <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+                    `;
+                    
+                    ings.forEach(ing => {
+                        const existing = currentComponents.find(c => c.itemId === ing.id);
+                        ingredientsHTML += `
+                            <div style="display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-md); background: white; border: 2px solid var(--gray-200); border-radius: var(--radius);">
+                                <input type="checkbox" id="ing-${ing.id}" ${existing ? 'checked' : ''} 
+                                    onchange="toggleIngredient('${ing.id}', '${ing.name.replace(/'/g, "\\'")}', this.checked)">
+                                <label for="ing-${ing.id}" style="flex: 1; cursor: pointer;">
+                                    <strong>${ing.name}</strong>
+                                    <div class="text-muted" style="font-size: 0.875rem;">${ing.category || 'N/A'} • ${ing.unit || 'unité'}</div>
+                                </label>
+                                <input type="number" id="qty-${ing.id}" class="form-control" 
+                                    style="width: 100px;" placeholder="Qté" min="0" step="0.1"
+                                    value="${existing ? existing.quantity : 1}"
+                                    ${!existing ? 'disabled' : ''}>
+                            </div>
+                        `;
+                    });
+                    
+                    ingredientsHTML += '</div></div>';
+                });
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.id = 'recipeModal';
+                
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 800px;">
+                        <div class="modal-header">
+                            <h2>📖 Recette : ${item.name}</h2>
+                            <span class="modal-close" onclick="closeRecipeModal()">✕</span>
+                        </div>
+                        
+                        <div class="modal-body">
+                            <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--info-light); border-radius: var(--radius);">
+                                <strong>ℹ️ Info:</strong> Sélectionnez les ingrédients nécessaires pour préparer ce plat et indiquez les quantités.
+                            </div>
+                            
+                            <div style="margin-bottom: var(--spacing-md);">
+                                <input type="text" id="recipeSearchInput" class="form-control" 
+                                    placeholder="🔍 Rechercher un ingrédient..." 
+                                    oninput="filterRecipeIngredients()"
+                                    style="font-size: 1rem; padding: var(--spacing-md);">
+                            </div>
+                            
+                            <div style="max-height: 50vh; overflow-y: auto;">
+                                <div class="customization-section">
+                                    <h4>🧩 Sélectionner les ingrédients <span id="ingredientsCount" style="color: var(--text-secondary); font-size: 0.875rem; font-weight: 400;"></span></h4>
+                                    <div id="ingredientsList">
+                                        ${ingredientsHTML}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeRecipeModal()">
+                                Annuler
+                            </button>
+                            <button class="btn btn-success" onclick="saveRecipe('${itemId}')">
+                                💾 Enregistrer la recette
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // Pré-sélectionner les ingrédients existants
+                currentComponents.forEach(comp => {
+                    if (window.selectedIngredients) {
+                        window.selectedIngredients.add(comp.itemId);
+                    }
+                });
+                
+                // Mettre à jour le compteur initial
+                updateIngredientCount();
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement de la recette:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        
+        function filterRecipeIngredients() {
+            const searchInput = document.getElementById('recipeSearchInput');
+            if (!searchInput) return;
+            
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const categories = document.querySelectorAll('#ingredientsList > div');
+            
+            let totalVisible = 0;
+            let totalIngredients = 0;
+            
+            categories.forEach(catDiv => {
+                const ingredients = catDiv.querySelectorAll('div[style*="display: flex"]');
+                let visibleCount = 0;
+                
+                ingredients.forEach(ingDiv => {
+                    totalIngredients++;
+                    const label = ingDiv.querySelector('label');
+                    if (!label) return;
+                    
+                    const text = label.textContent.toLowerCase();
+                    const matches = searchTerm === '' || text.includes(searchTerm);
+                    
+                    if (matches) {
+                        ingDiv.style.display = 'flex';
+                        visibleCount++;
+                        totalVisible++;
+                    } else {
+                        ingDiv.style.display = 'none';
+                    }
+                });
+                
+                // Masquer la catégorie si aucun ingrédient visible
+                catDiv.style.display = visibleCount > 0 ? 'block' : 'none';
+            });
+            
+            // Mettre à jour le compteur
+            const countSpan = document.getElementById('ingredientsCount');
+            if (countSpan) {
+                if (searchTerm === '') {
+                    countSpan.textContent = `(${totalIngredients} disponibles)`;
+                } else {
+                    countSpan.textContent = `(${totalVisible}/${totalIngredients} trouvés)`;
+                }
+            }
+        }
+        
+        
+        function updateIngredientCount() {
+            const ingredients = document.querySelectorAll('#ingredientsList div[style*="display: flex"]');
+            const countSpan = document.getElementById('ingredientsCount');
+            if (countSpan) {
+                countSpan.textContent = `(${ingredients.length} disponibles)`;
+            }
+        }
+        
+        
+        function toggleIngredient(ingId, ingName, checked) {
+            if (!window.selectedIngredients) {
+                window.selectedIngredients = new Set();
+            }
+            
+            const qtyInput = document.getElementById(`qty-${ingId}`);
+            
+            if (checked) {
+                window.selectedIngredients.add(ingId);
+                qtyInput.disabled = false;
+                if (!qtyInput.value || qtyInput.value === '0') {
+                    qtyInput.value = 1;
+                }
+                qtyInput.focus();
+            } else {
+                window.selectedIngredients.delete(ingId);
+                qtyInput.disabled = true;
+            }
+        }
+        
+        async function saveRecipe(itemId) {
+            try {
+                const components = [];
+                
+                // Récupérer tous les ingrédients cochés
+                const checkboxes = document.querySelectorAll('#ingredientsList input[type="checkbox"]:checked');
+                
+                if (checkboxes.length === 0) {
+                    alert('⚠️ Veuillez sélectionner au moins un ingrédient');
+                    return;
+                }
+                
+                for (const checkbox of checkboxes) {
+                    const ingId = checkbox.id.replace('ing-', '');
+                    const qtyInput = document.getElementById(`qty-${ingId}`);
+                    const quantity = parseFloat(qtyInput.value);
+                    
+                    if (!quantity || quantity <= 0) {
+                        alert(`⚠️ Veuillez saisir une quantité valide pour tous les ingrédients sélectionnés`);
+                        qtyInput.focus();
+                        return;
+                    }
+                    
+                    // Récupérer le nom de l'ingrédient
+                    const label = checkbox.nextElementSibling;
+                    const ingName = label.querySelector('strong').textContent;
+                    
+                    components.push({
+                        itemId: ingId,
+                        itemName: ingName,
+                        quantity: quantity
+                    });
+                }
+                
+                await db.collection('items').doc(itemId).update({
+                    components: components,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert(`✅ Recette enregistrée avec succès !\n${components.length} ingrédient(s) configuré(s).`);
+                closeRecipeModal();
+                loadRecipesList();
+                
+            } catch (error) {
+                console.error('Erreur lors de l\'enregistrement:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        async function clearRecipe(itemId) {
+            if (!confirm('Supprimer la recette de ce plat ? Les ventes futures ne déduiront plus les stocks.')) return;
+            
+            try {
+                await db.collection('items').doc(itemId).update({
+                    components: [],
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('✅ Recette supprimée');
+                loadRecipesList();
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        function closeRecipeModal() {
+            const modal = document.getElementById('recipeModal');
+            if (modal) modal.remove();
+            // Nettoyer les données temporaires
+            if (window.selectedIngredients) {
+                window.selectedIngredients = null;
+            }
+        }
+        
+        // ============================================
+        // RAPPORTS
+        // ============================================
+        function renderReports() {
+            loadReportsData();
+            return `
+                <h1>📈 Rapports</h1>
+                
+                <div class="card">
+                    <h3>Filtres</h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md); margin-bottom: var(--spacing-xl);">
+                        <div class="form-group">
+                            <label>Date début</label>
+                            <input type="date" id="reportStartDate" class="form-control" onchange="loadReportsData()">
+                        </div>
+                        <div class="form-group">
+                            <label>Date fin</label>
+                            <input type="date" id="reportEndDate" class="form-control" onchange="loadReportsData()">
+                        </div>
+                        <div class="form-group">
+                            <label>Établissement</label>
+                            <select id="reportEstablishment" class="form-control" onchange="loadReportsData()">
+                                <option value="">Tous</option>
+                                <option value="Le_Sha">Le Sha</option>
+                                <option value="Le_Shiba">Le Shiba</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Chiffre d'affaires</div>
+                        <div class="stat-value" id="reportRevenue">0 F</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Nombre de commandes</div>
+                        <div class="stat-value" id="reportOrderCount">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Ticket moyen</div>
+                        <div class="stat-value" id="reportAvgTicket">0 F</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Espèces</div>
+                        <div class="stat-value" id="reportCash">0 F</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Articles les plus vendus</h3>
+                    <div id="topItems">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rang</th>
+                                    <th>Article</th>
+                                    <th>Quantité vendue</th>
+                                    <th>CA généré</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topItemsBody">
+                                <tr><td colspan="4" class="text-center text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Ventes par catégorie</h3>
+                    <div id="categoryStats">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Catégorie</th>
+                                    <th>Quantité</th>
+                                    <th>CA</th>
+                                    <th>% du total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoryStatsBody">
+                                <tr><td colspan="4" class="text-center text-muted">Chargement...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function loadReportsData() {
+            const startDate = document.getElementById('reportStartDate')?.value;
+            const endDate = document.getElementById('reportEndDate')?.value;
+            const establishment = document.getElementById('reportEstablishment')?.value;
+            
+            let query = db.collection('orders').where('status', '==', 'paid');
+            
+            if (startDate) {
+                query = query.where('paidAt', '>=', new Date(startDate));
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                end.setHours(23, 59, 59);
+                query = query.where('paidAt', '<=', end);
+            }
+            if (establishment) {
+                query = query.where('establishmentId', '==', establishment);
+            }
+            
+            const snapshot = await query.get();
+            
+            let totalRevenue = 0;
+            let orderCount = 0;
+            let cashTotal = 0;
+            const itemStats = {};
+            const categoryStats = {};
+            
+            for (const doc of snapshot.docs) {
+                const order = doc.data();
+                totalRevenue += order.total || 0;
+                orderCount++;
+                
+                if (order.paymentMethod === 'cash') {
+                    cashTotal += order.total || 0;
+                }
+                
+                for (const item of order.items || []) {
+                    if (!itemStats[item.itemId]) {
+                        itemStats[item.itemId] = {
+                            name: item.itemName,
+                            quantity: 0,
+                            revenue: 0
+                        };
+                    }
+                    itemStats[item.itemId].quantity += item.quantity;
+                    itemStats[item.itemId].revenue += (item.price * item.quantity);
+                    
+                    // Récupérer la catégorie
+                    const itemDoc = await db.collection('items').doc(item.itemId).get();
+                    if (itemDoc.exists) {
+                        const cat = itemDoc.data().category || 'Non catégorisé';
+                        if (!categoryStats[cat]) {
+                            categoryStats[cat] = { quantity: 0, revenue: 0 };
+                        }
+                        categoryStats[cat].quantity += item.quantity;
+                        categoryStats[cat].revenue += (item.price * item.quantity);
+                    }
+                }
+            }
+            
+            const avgTicket = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
+            
+            setTimeout(() => {
+                if (document.getElementById('reportRevenue')) {
+                    document.getElementById('reportRevenue').textContent = `${totalRevenue.toLocaleString()} F`;
+                    document.getElementById('reportOrderCount').textContent = orderCount;
+                    document.getElementById('reportAvgTicket').textContent = `${avgTicket.toLocaleString()} F`;
+                    document.getElementById('reportCash').textContent = `${cashTotal.toLocaleString()} F`;
+                }
+            }, 100);
+            
+            // Top items
+            const topItems = Object.values(itemStats)
+                .sort((a, b) => b.quantity - a.quantity)
+                .slice(0, 10);
+            
+            const topItemsBody = document.getElementById('topItemsBody');
+            if (topItemsBody) {
+                if (topItems.length === 0) {
+                    topItemsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Aucune donnée</td></tr>';
+                } else {
+                    topItemsBody.innerHTML = topItems.map((item, index) => `
+                        <tr>
+                            <td><strong>#${index + 1}</strong></td>
+                            <td>${item.name}</td>
+                            <td><strong>${item.quantity}</strong></td>
+                            <td><strong>${Math.round(item.revenue).toLocaleString()} F</strong></td>
+                        </tr>
+                    `).join('');
+                }
+            }
+            
+            // Category stats
+            const categoryList = Object.entries(categoryStats)
+                .map(([name, stats]) => ({ name, ...stats }))
+                .sort((a, b) => b.revenue - a.revenue);
+            
+            const categoryStatsBody = document.getElementById('categoryStatsBody');
+            if (categoryStatsBody) {
+                if (categoryList.length === 0) {
+                    categoryStatsBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Aucune donnée</td></tr>';
+                } else {
+                    categoryStatsBody.innerHTML = categoryList.map(cat => {
+                        const percent = totalRevenue > 0 ? ((cat.revenue / totalRevenue) * 100).toFixed(1) : 0;
+                        return `
+                            <tr>
+                                <td><strong>${cat.name}</strong></td>
+                                <td>${cat.quantity}</td>
+                                <td><strong>${Math.round(cat.revenue).toLocaleString()} F</strong></td>
+                                <td>${percent}%</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+        }
+        
+        // ============================================
+        // NAVIGATION
+        // ============================================
+        function navigateTo(page) {
+            currentPage = page;
+            renderApp();
+            // Fermer la sidebar mobile après navigation
+            if (window.innerWidth <= 768) {
+                closeMobileSidebar();
+            }
+        }
+        
+        function toggleMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('mobile-visible');
+                overlay.classList.toggle('active');
+                
+                // Empêcher le scroll du body quand le menu est ouvert
+                if (sidebar.classList.contains('mobile-visible')) {
+                    document.body.style.overflow = 'hidden';
+                } else {
+                    document.body.style.overflow = '';
+                }
+            }
+        }
+        
+        function closeMobileSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (sidebar && overlay) {
+                sidebar.classList.remove('mobile-visible');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+        
+        function attachEventListeners() {
+            // Les event listeners sont gérés via onclick inline pour simplifier
+            
+            // Fermer la sidebar si on redimensionne vers desktop
+            window.addEventListener('resize', () => {
+                if (window.innerWidth > 768) {
+                    closeMobileSidebar();
+                }
+            });
+        }
+        
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+        auth.onAuthStateChanged(async (user) => {
+            if (user) {
+                const userDoc = await db.collection('users').doc(user.uid).get();
+                if (userDoc.exists && userDoc.data().active) {
+                    currentUser = { uid: user.uid, ...userDoc.data() };
+                    if (currentPage === 'login') currentPage = 'dashboard';
+                }
+            }
+            renderApp();
+        });
+    </script>
+</body>
+</html>
