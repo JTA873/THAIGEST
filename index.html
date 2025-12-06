@@ -413,7 +413,7 @@
             flex-direction: column;
             gap: var(--spacing-lg);
             height: 100%;
-            overflow: hidden;
+            overflow: auto;
             position: relative;
             transition: all 0.3s ease;
         }
@@ -431,7 +431,7 @@
             display: flex;
             flex-direction: column;
             height: 100%;
-            overflow: hidden;
+            overflow: visible;
         }
         
         .cart-toggle {
@@ -507,6 +507,8 @@
             flex: 1;
             overflow-y: auto;
             padding-right: var(--spacing-sm);
+            min-height: 300px;
+            margin-top: var(--spacing-md);
         }
         
         .cart-items::-webkit-scrollbar {
@@ -2174,12 +2176,7 @@
         
         async function resolveOutOfStock(itemId) {
             try {
-                await db.collection('outOfStock').doc(itemId).update({
-                    resolved: true,
-                    resolvedBy: currentUser.uid,
-                    resolvedByName: currentUser.name,
-                    resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                await db.collection('outOfStock').doc(itemId).delete();
                 
                 alert('✅ Article de nouveau disponible.');
                 closeOutOfStockModal();
@@ -2192,57 +2189,64 @@
         }
         
         // Modal liste des ruptures (pour les serveurs)
-        function showOutOfStockList() {
-            const items = Object.values(outOfStockItems);
-            
-            if (items.length === 0) {
-                alert('✅ Aucun article en rupture actuellement.');
-                return;
-            }
-            
-            const modal = document.createElement('div');
-            modal.className = 'modal-overlay';
-            modal.id = 'outOfStockListModal';
-            
-            const itemsHTML = items.map(item => `
-                <div style="padding: var(--spacing-md); border-bottom: 1px solid var(--gray-200);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong style="color: var(--danger);">🚫 ${item.itemName}</strong>
-                            <div class="text-muted" style="font-size: 0.875rem;">
-                                Signalé par ${item.reportedByName || 'Cuisine'}
-                                ${item.reportedAt ? ` le ${item.reportedAt.toDate().toLocaleString('fr-FR')}` : ''}
+        async function showOutOfStockList() {
+            try {
+                // Recharger depuis Firestore pour avoir les données à jour
+                const snapshot = await db.collection('outOfStock').get();
+                const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                if (items.length === 0) {
+                    alert('✅ Aucun article en rupture actuellement.');
+                    return;
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.id = 'outOfStockListModal';
+                
+                const itemsHTML = items.map(item => `
+                    <div style="padding: var(--spacing-md); border-bottom: 1px solid var(--gray-200);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong style="color: var(--danger);">🚫 ${item.itemName}</strong>
+                                <div class="text-muted" style="font-size: 0.875rem;">
+                                    Signalé par ${item.reportedByName || 'Cuisine'}
+                                    ${item.reportedAt ? ` le ${item.reportedAt.toDate().toLocaleString('fr-FR')}` : ''}
+                                </div>
                             </div>
+                            <span class="badge badge-danger">Indisponible</span>
                         </div>
-                        <span class="badge badge-danger">Indisponible</span>
                     </div>
-                </div>
-            `).join('');
-            
-            modal.innerHTML = `
-                <div class="modal-content" style="max-width: 600px;">
-                    <div class="modal-header">
-                        <h2>🚫 Articles en rupture</h2>
-                        <span class="modal-close" onclick="closeOutOfStockListModal()">✕</span>
-                    </div>
-                    
-                    <div class="modal-body">
-                        <div style="background: var(--danger); color: white; padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-lg);">
-                            <strong>⚠️ Attention:</strong> ${items.length} article(s) actuellement indisponible(s).
+                `).join('');
+                
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div class="modal-header">
+                            <h2>🚫 Articles en rupture</h2>
+                            <span class="modal-close" onclick="closeOutOfStockListModal()">✕</span>
                         </div>
                         
-                        <div style="max-height: 400px; overflow-y: auto;">
-                            ${itemsHTML}
+                        <div class="modal-body">
+                            <div style="background: var(--danger); color: white; padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-lg);">
+                                <strong>⚠️ Attention:</strong> ${items.length} article(s) actuellement indisponible(s).
+                            </div>
+                            
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                ${itemsHTML}
+                            </div>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeOutOfStockListModal()">Fermer</button>
                         </div>
                     </div>
-                    
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="closeOutOfStockListModal()">Fermer</button>
-                    </div>
-                </div>
-            `;
-            
-            document.body.appendChild(modal);
+                `;
+                
+                document.body.appendChild(modal);
+            } catch (error) {
+                console.error('Erreur chargement ruptures:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
         }
         
         function closeOutOfStockModal() {
@@ -2303,23 +2307,31 @@
                         <div class="cart-content">
                             <div style="flex-shrink: 0;">
                                 <h3>Commande</h3>
-                                <div class="form-group">
-                                    <label>Établissement</label>
-                                    <select id="orderEstablishment" class="form-control">
-                                        <option value="Le_Sha">🏪 Le Sha</option>
-                                        <option value="Le_Shiba">🏪 Le Shiba</option>
-                                    </select>
-                                </div>
+                                
                                 <div class="form-group">
                                     <label>N° Table</label>
                                     <input type="text" id="tableNumber" class="form-control" placeholder="Ex: 12">
                                 </div>
+                                
+                                <button class="btn btn-success" style="width: 100%; padding: var(--spacing-lg); font-size: 1.1rem; margin-bottom: var(--spacing-sm);" onclick="processOrder()">
+                                    ✓ Valider la Commande
+                                </button>
+                                <button class="btn btn-danger" style="width: 100%; padding: var(--spacing-md); margin-bottom: var(--spacing-md);" onclick="clearCart()">
+                                    🗑️ Vider le panier
+                                </button>
+                            </div>
+                            
+                            <div class="cart-items" id="cartItems">
+                                <p class="text-muted text-center">Panier vide</p>
+                            </div>
+                            
+                            <div style="flex-shrink: 0; margin-top: var(--spacing-md);">
                                 <div class="form-group">
                                     <label>Notes (optionnel)</label>
                                     <textarea id="orderNotes" class="form-control" rows="2" placeholder="Instructions spéciales..."></textarea>
                                 </div>
                                 
-                                <div style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-sm);">
+                                <div style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius); margin-top: var(--spacing-md);">
                                     <div style="display: flex; justify-content: space-between;">
                                         <span>Sous-total HT</span>
                                         <strong id="cartSubtotal">0 F</strong>
@@ -2328,18 +2340,11 @@
                                         <span>TVA (10%)</span>
                                         <strong id="cartTax">0 F</strong>
                                     </div>
+                                    <div style="display: flex; justify-content: space-between; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid var(--gray-300); font-size: 1.1rem;">
+                                        <strong>Total TTC</strong>
+                                        <strong id="cartTotal" style="color: var(--success); font-size: 1.3rem;">0 F</strong>
+                                    </div>
                                 </div>
-                                <div class="cart-total" id="cartTotal">Total: 0 F</div>
-                                <button class="btn btn-success" style="width: 100%; padding: var(--spacing-lg); font-size: 1.1rem; margin-bottom: var(--spacing-sm);" onclick="processOrder()">
-                                    ✓ Valider la Commande
-                                </button>
-                                <button class="btn btn-danger" style="width: 100%; padding: var(--spacing-sm); margin-bottom: var(--spacing-md);" onclick="clearCart()">
-                                    🗑️ Vider le panier
-                                </button>
-                            </div>
-                            
-                            <div class="cart-items" id="cartItems" style="flex: 1; overflow-y: auto; min-height: 100px;">
-                                <p class="text-muted text-center">Panier vide</p>
                             </div>
                         </div>
                     </div>
@@ -2367,6 +2372,18 @@
             
             // Restaurer l'état du cart (replié/déplié)
             setTimeout(() => restoreCartState(), 100);
+            
+            // Écouter les ruptures de stock en temps réel
+            if (outOfStockUnsubscribe) {
+                outOfStockUnsubscribe();
+            }
+            outOfStockUnsubscribe = db.collection('outOfStock').onSnapshot(snapshot => {
+                outOfStockItems = {};
+                snapshot.docs.forEach(doc => {
+                    outOfStockItems[doc.id] = doc.data();
+                });
+                updateOutOfStockBadge();
+            });
         }
         
         function renderPOSItems(items) {
@@ -2665,7 +2682,7 @@
                 container.innerHTML = '<p class="text-muted text-center">Panier vide</p>';
                 document.getElementById('cartSubtotal').textContent = '0 F';
                 document.getElementById('cartTax').textContent = '0 F';
-                document.getElementById('cartTotal').textContent = 'Total: 0 F';
+                document.getElementById('cartTotal').textContent = '0 F';
                 return;
             }
             
@@ -2702,7 +2719,7 @@
             
             document.getElementById('cartSubtotal').textContent = `${subtotal.toLocaleString()} F`;
             document.getElementById('cartTax').textContent = `${tax.toLocaleString()} F`;
-            document.getElementById('cartTotal').textContent = `Total: ${total.toLocaleString()} F`;
+            document.getElementById('cartTotal').textContent = `${total.toLocaleString()} F`;
         }
         
         function updateCartQty(index, delta) {
@@ -2764,7 +2781,6 @@
         async function processOrder() {
             const tableNumber = document.getElementById('tableNumber').value;
             const orderNotes = document.getElementById('orderNotes')?.value || '';
-            const selectedEstablishment = document.getElementById('orderEstablishment')?.value || 'Le_Sha';
             
             if (!tableNumber) {
                 alert('Veuillez saisir un numéro de table');
@@ -2775,6 +2791,19 @@
                 alert('Le panier est vide');
                 return;
             }
+            
+            // Déterminer l'établissement automatiquement en fonction des articles
+            const establishments = [...new Set(cart.map(item => item.establishmentId).filter(Boolean))];
+            let selectedEstablishment = '';
+            
+            if (establishments.length === 1) {
+                // Un seul établissement spécifique
+                selectedEstablishment = establishments[0];
+            } else if (establishments.length > 1) {
+                // Mélange d'établissements - demander à l'utilisateur
+                selectedEstablishment = prompt('Articles de plusieurs établissements. Choisir:\n1 = Le Sha\n2 = Le Shiba') === '2' ? 'Le_Shiba' : 'Le_Sha';
+            }
+            // Sinon reste vide (articles communs aux deux établissements)
             
             try {
                 const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
