@@ -416,6 +416,16 @@
             color: var(--danger);
         }
         
+        .badge-primary {
+            background: #ddd6fe;
+            color: var(--primary);
+        }
+        
+        .badge-info {
+            background: #dbeafe;
+            color: var(--info);
+        }
+        
         /* ============================================
            LOGIN PAGE
            ============================================ */
@@ -901,9 +911,10 @@
         // ============================================
         let currentUser = null;
         let currentPage = 'login';
-        let currentEstablishment = null;
         let cart = [];
         let allItems = [];
+        let outOfStockItems = {}; // { itemId: { name, type, reportedBy, reportedAt } }
+        let outOfStockUnsubscribe = null;
         
         // ============================================
         // ROUTING & RENDERING
@@ -938,42 +949,60 @@
         }
         
         function renderSidebar() {
+            const permissions = currentUser.permissions || {};
+            const isAdmin = currentUser.role === 'admin';
+            
+            // Fonction helper pour vérifier l'accès
+            const hasAccess = (page) => isAdmin || permissions[page];
+            
             return `
                 <nav class="sidebar">
                     <div class="sidebar-logo">🍽️ GestionResto</div>
+                    ${hasAccess('dashboard') ? `
                     <div class="nav-item ${currentPage === 'dashboard' ? 'active' : ''}" onclick="navigateTo('dashboard')">
                         📊 Dashboard
                     </div>
-                    <div class="nav-item ${currentPage === 'pos-sha' ? 'active' : ''}" onclick="navigateTo('pos-sha')">
-                        💳 POS Le Sha
+                    ` : ''}
+                    ${hasAccess('pos') ? `
+                    <div class="nav-item ${currentPage === 'pos' ? 'active' : ''}" onclick="navigateTo('pos')">
+                        💳 Point de Vente
                     </div>
-                    <div class="nav-item ${currentPage === 'pos-shiba' ? 'active' : ''}" onclick="navigateTo('pos-shiba')">
-                        💳 POS Le Shiba
-                    </div>
-                    <div class="nav-item ${currentPage === 'payments' ? 'active' : ''}" onclick="navigateTo('payments')">
-                        💰 Paiements
-                    </div>
+                    ` : ''}
+                    ${hasAccess('kds') ? `
                     <div class="nav-item ${currentPage === 'kds' ? 'active' : ''}" onclick="navigateTo('kds')">
                         🍳 Cuisine (KDS)
                     </div>
-                    <div class="nav-item ${currentPage === 'items-sha' ? 'active' : ''}" onclick="navigateTo('items-sha')">
-                        📦 Articles Le Sha
+                    ` : ''}
+                    ${hasAccess('payments') ? `
+                    <div class="nav-item ${currentPage === 'payments' ? 'active' : ''}" onclick="navigateTo('payments')">
+                        💰 Paiements
                     </div>
-                    <div class="nav-item ${currentPage === 'items-shiba' ? 'active' : ''}" onclick="navigateTo('items-shiba')">
-                        📦 Articles Le Shiba
+                    ` : ''}
+                    ${hasAccess('items') ? `
+                    <div class="nav-item ${currentPage === 'items' ? 'active' : ''}" onclick="navigateTo('items')">
+                        📦 Articles
                     </div>
-                    <div class="nav-item ${currentPage === 'stock-sha' ? 'active' : ''}" onclick="navigateTo('stock-sha')">
-                        📊 Stock Le Sha
+                    ` : ''}
+                    ${hasAccess('stock') ? `
+                    <div class="nav-item ${currentPage === 'stock' ? 'active' : ''}" onclick="navigateTo('stock')">
+                        📊 Stock
                     </div>
-                    <div class="nav-item ${currentPage === 'stock-shiba' ? 'active' : ''}" onclick="navigateTo('stock-shiba')">
-                        📊 Stock Le Shiba
-                    </div>
+                    ` : ''}
+                    ${hasAccess('recipes') ? `
                     <div class="nav-item ${currentPage === 'recipes' ? 'active' : ''}" onclick="navigateTo('recipes')">
                         📖 Recettes (BOM)
                     </div>
+                    ` : ''}
+                    ${hasAccess('reports') ? `
                     <div class="nav-item ${currentPage === 'reports' ? 'active' : ''}" onclick="navigateTo('reports')">
                         📈 Rapports
                     </div>
+                    ` : ''}
+                    ${isAdmin ? `
+                    <div class="nav-item ${currentPage === 'users' ? 'active' : ''}" onclick="navigateTo('users')">
+                        👥 Création d'accès
+                    </div>
+                    ` : ''}
                     <div style="margin-top: auto; padding-top: var(--spacing-xl); border-top: 1px solid rgba(255,255,255,0.1);">
                         <div style="color: white; margin-bottom: var(--spacing-md);">
                             <div style="font-weight: 600;">${currentUser.name}</div>
@@ -988,16 +1017,14 @@
         function renderCurrentPage() {
             switch(currentPage) {
                 case 'dashboard': return renderDashboard();
-                case 'pos-sha': return renderPOS('Le_Sha');
-                case 'pos-shiba': return renderPOS('Le_Shiba');
+                case 'pos': return renderPOS();
                 case 'kds': return renderKDS();
                 case 'payments': return renderPayments();
-                case 'items-sha': return renderItems('Le_Sha');
-                case 'items-shiba': return renderItems('Le_Shiba');
-                case 'stock-sha': return renderStock('Le_Sha');
-                case 'stock-shiba': return renderStock('Le_Shiba');
+                case 'items': return renderItems();
+                case 'stock': return renderStock();
                 case 'recipes': return renderRecipes();
                 case 'reports': return renderReports();
+                case 'users': return renderUsers();
                 default: return renderDashboard();
             }
         }
@@ -1064,16 +1091,26 @@
         function renderDashboard() {
             loadDashboardStats();
             return `
-                <h1>📊 Dashboard</h1>
-                <p class="text-muted">Vue d'ensemble de votre activité</p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
+                    <div>
+                        <h1>📊 Dashboard</h1>
+                        <p class="text-muted">Vue d'ensemble de votre activité</p>
+                    </div>
+                    <div style="display: flex; gap: var(--spacing-sm);">
+                        <button class="btn btn-sm" onclick="filterDashboard('today')" id="filterToday">📅 Aujourd'hui</button>
+                        <button class="btn btn-sm btn-secondary" onclick="filterDashboard('week')" id="filterWeek">📅 Cette semaine</button>
+                        <button class="btn btn-sm btn-secondary" onclick="filterDashboard('month')" id="filterMonth">📅 Ce mois</button>
+                        <button class="btn btn-sm btn-secondary" onclick="filterDashboard('all')" id="filterAll">📅 Tout</button>
+                    </div>
+                </div>
                 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-label">Chiffre d'affaires du jour</div>
+                        <div class="stat-label" id="statRevenueLabel">Chiffre d'affaires du jour</div>
                         <div class="stat-value" id="statRevenue">0 F</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Commandes du jour</div>
+                        <div class="stat-label" id="statOrdersLabel">Commandes du jour</div>
                         <div class="stat-value" id="statOrders">0</div>
                     </div>
                     <div class="stat-card">
@@ -1087,19 +1124,63 @@
                 </div>
                 
                 <div class="card">
-                    <h3>Commandes récentes</h3>
+                    <h3 id="recentOrdersTitle">Commandes récentes</h3>
                     <div id="recentOrders">Chargement...</div>
                 </div>
             `;
         }
         
-        async function loadDashboardStats() {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+        let currentDashboardFilter = 'today';
+        
+        function filterDashboard(period) {
+            currentDashboardFilter = period;
             
-            const ordersSnap = await db.collection('orders')
-                .where('createdAt', '>=', today)
-                .get();
+            // Mettre à jour les boutons
+            ['filterToday', 'filterWeek', 'filterMonth', 'filterAll'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.className = id === 'filter' + period.charAt(0).toUpperCase() + period.slice(1) 
+                        ? 'btn btn-sm' 
+                        : 'btn btn-sm btn-secondary';
+                }
+            });
+            
+            loadDashboardStats(period);
+        }
+        
+        async function loadDashboardStats(period = 'today') {
+            let startDate = new Date();
+            let periodLabel = '';
+            
+            switch(period) {
+                case 'today':
+                    startDate.setHours(0, 0, 0, 0);
+                    periodLabel = 'du jour';
+                    break;
+                case 'week':
+                    const day = startDate.getDay();
+                    const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+                    startDate = new Date(startDate.setDate(diff));
+                    startDate.setHours(0, 0, 0, 0);
+                    periodLabel = 'de la semaine';
+                    break;
+                case 'month':
+                    startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+                    startDate.setHours(0, 0, 0, 0);
+                    periodLabel = 'du mois';
+                    break;
+                case 'all':
+                    startDate = new Date(2020, 0, 1);
+                    periodLabel = 'total';
+                    break;
+            }
+            
+            let query = db.collection('orders');
+            if (period !== 'all') {
+                query = query.where('createdAt', '>=', startDate);
+            }
+            
+            const ordersSnap = await query.get();
             
             let totalRevenue = 0;
             let orderCount = 0;
@@ -1115,20 +1196,40 @@
             const avgTicket = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
             
             setTimeout(() => {
+                document.getElementById('statRevenueLabel').textContent = `Chiffre d'affaires ${periodLabel}`;
+                document.getElementById('statOrdersLabel').textContent = `Commandes ${periodLabel}`;
                 document.getElementById('statRevenue').textContent = `${totalRevenue.toLocaleString()} F`;
                 document.getElementById('statOrders').textContent = orderCount;
                 document.getElementById('statAvg').textContent = `${avgTicket.toLocaleString()} F`;
                 document.getElementById('statTables').textContent = activeTables.size;
             }, 100);
             
-            loadRecentOrders();
+            loadRecentOrders(period);
         }
         
-        async function loadRecentOrders() {
-            const snapshot = await db.collection('orders')
-                .orderBy('createdAt', 'desc')
-                .limit(10)
-                .get();
+        async function loadRecentOrders(period = 'today') {
+            let query = db.collection('orders')
+                .orderBy('createdAt', 'desc');
+            
+            if (period === 'today') {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                query = query.where('createdAt', '>=', today);
+            } else if (period === 'week') {
+                const startDate = new Date();
+                const day = startDate.getDay();
+                const diff = startDate.getDate() - day + (day === 0 ? -6 : 1);
+                const weekStart = new Date(startDate.setDate(diff));
+                weekStart.setHours(0, 0, 0, 0);
+                query = query.where('createdAt', '>=', weekStart);
+            } else if (period === 'month') {
+                const monthStart = new Date();
+                monthStart.setDate(1);
+                monthStart.setHours(0, 0, 0, 0);
+                query = query.where('createdAt', '>=', monthStart);
+            }
+            
+            const snapshot = await query.limit(20).get();
             
             const container = document.getElementById('recentOrders');
             
@@ -1146,6 +1247,7 @@
                             <th>Montant</th>
                             <th>Statut</th>
                             <th>Date</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1164,6 +1266,11 @@
                                     <td><strong>${(order.total || 0).toLocaleString()} F</strong></td>
                                     <td><span class="badge ${statusBadge}">${statusText}</span></td>
                                     <td>${date}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteOrder('${doc.id}')" title="Supprimer la commande">
+                                            🗑️
+                                        </button>
+                                    </td>
                                 </tr>
                             `;
                         }).join('')}
@@ -1172,19 +1279,38 @@
             `;
         }
         
+        async function deleteOrder(orderId) {
+            if (!confirm('⚠️ Êtes-vous sûr de vouloir supprimer cette commande ?\n\nCette action est irréversible.')) {
+                return;
+            }
+            
+            try {
+                await db.collection('orders').doc(orderId).delete();
+                alert('✅ Commande supprimée avec succès !');
+                
+                // Recharger les statistiques et la liste
+                loadDashboardStats(currentDashboardFilter);
+            } catch (error) {
+                console.error('Erreur suppression commande:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
         // ============================================
         // KDS (KITCHEN DISPLAY SYSTEM)
         // ============================================
         function renderKDS() {
-            loadKDSOrders();
+            const savedEstablishment = localStorage.getItem('currentKDSEstablishment') || '';
+            loadKDSOrders(savedEstablishment);
+            
             return `
                 <h1>🍳 Cuisine - Affichage des Commandes</h1>
                 
                 <div style="display: flex; gap: var(--spacing-md); margin-bottom: var(--spacing-xl); align-items: center;">
-                    <select id="kdsEstablishment" class="form-control" style="max-width: 300px;" onchange="loadKDSOrders()">
-                        <option value="">Tous les établissements</option>
-                        <option value="Le_Sha">Le Sha</option>
-                        <option value="Le_Shiba">Le Shiba</option>
+                    <select id="kdsEstablishment" class="form-control" style="max-width: 300px;" onchange="loadKDSOrders(this.value)">
+                        <option value="" ${savedEstablishment === '' ? 'selected' : ''}>Tous les établissements</option>
+                        <option value="Le_Sha" ${savedEstablishment === 'Le_Sha' ? 'selected' : ''}>Le Sha</option>
+                        <option value="Le_Shiba" ${savedEstablishment === 'Le_Shiba' ? 'selected' : ''}>Le Shiba</option>
                     </select>
                     
                     <select id="kdsStatusFilter" class="form-control" style="max-width: 200px;" onchange="loadKDSOrders()">
@@ -1196,6 +1322,10 @@
                     </select>
                     
                     <button class="btn btn-sm" onclick="loadKDSOrders()">🔄 Actualiser</button>
+                    
+                    <button class="btn btn-sm btn-warning" onclick="showOutOfStockManager()">
+                        🚫 Gérer les ruptures
+                    </button>
                     
                     <div style="margin-left: auto; font-size: 0.875rem; color: var(--text-secondary);">
                         <span id="kdsCount">0</span> commande(s)
@@ -1210,16 +1340,25 @@
         
         let kdsUnsubscribe = null;
         
-        async function loadKDSOrders() {
+        async function loadKDSOrders(establishment) {
             // Désabonner l'ancien listener
             if (kdsUnsubscribe) {
                 kdsUnsubscribe();
             }
             
-            const establishment = document.getElementById('kdsEstablishment')?.value;
+            // Sauvegarder la sélection
+            if (establishment !== undefined) {
+                localStorage.setItem('currentKDSEstablishment', establishment);
+            }
+            
             const statusFilter = document.getElementById('kdsStatusFilter')?.value || 'active';
             
             let query = db.collection('orders');
+            
+            // Filtrer par établissement si spécifié
+            if (establishment) {
+                query = query.where('establishmentId', '==', establishment);
+            }
             
             // Filtrer par statut
             if (statusFilter === 'active') {
@@ -1233,11 +1372,6 @@
             // Listener en temps réel
             kdsUnsubscribe = query.onSnapshot(snapshot => {
                 let orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Filtrer par établissement côté client
-                if (establishment) {
-                    orders = orders.filter(o => o.establishmentId === establishment);
-                }
                 
                 // Filtrer les commandes actives si nécessaire
                 if (statusFilter === 'active') {
@@ -1511,32 +1645,368 @@
         }
         
         // ============================================
+        // GESTION DES RUPTURES DE STOCK
+        // ============================================
+        
+        // Écouter les ruptures en temps réel
+        function initOutOfStockListener() {
+            if (outOfStockUnsubscribe) {
+                outOfStockUnsubscribe();
+            }
+            
+            outOfStockUnsubscribe = db.collection('outOfStock')
+                .where('resolved', '==', false)
+                .onSnapshot(snapshot => {
+                    outOfStockItems = {};
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        outOfStockItems[doc.id] = {
+                            id: doc.id,
+                            ...data
+                        };
+                    });
+                    
+                    // Mettre à jour le badge
+                    updateOutOfStockBadge();
+                    
+                    // Recharger les items POS si on est sur une page POS
+                    if (currentPage === 'pos-sha' || currentPage === 'pos-shiba') {
+                        renderPOSItems();
+                    }
+                });
+        }
+        
+        function updateOutOfStockBadge() {
+            const count = Object.keys(outOfStockItems).length;
+            const badge = document.getElementById('outOfStockBadge');
+            
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'flex' : 'none';
+            }
+        }
+        
+        // Modal de gestion des ruptures (pour la cuisine)
+        async function showOutOfStockManager() {
+            try {
+                // Charger tous les items
+                const itemsSnapshot = await db.collection('items')
+                    .where('type', '==', 'finished')
+                    .where('active', '==', true)
+                    .get();
+                
+                const items = itemsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                
+                // Charger les ruptures actuelles
+                const outOfStockSnapshot = await db.collection('outOfStock')
+                    .where('resolved', '==', false)
+                    .get();
+                
+                const currentOutOfStock = {};
+                outOfStockSnapshot.forEach(doc => {
+                    currentOutOfStock[doc.id] = doc.data();
+                });
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.id = 'outOfStockModal';
+                
+                const itemsHTML = items.map(item => {
+                    const isOutOfStock = currentOutOfStock[item.id];
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); border-bottom: 1px solid var(--gray-200);">
+                            <div>
+                                <strong>${item.name}</strong>
+                                <div class="text-muted" style="font-size: 0.875rem;">${item.category}</div>
+                                ${isOutOfStock ? `
+                                    <span class="badge badge-danger">En rupture</span>
+                                ` : ''}
+                            </div>
+                            <div>
+                                ${isOutOfStock ? `
+                                    <button class="btn btn-sm btn-success" onclick="resolveOutOfStock('${item.id}')">
+                                        ✅ Disponible
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-sm btn-danger" onclick="markOutOfStock('${item.id}', '${item.name.replace(/'/g, "\\'")}', 'item')">
+                                        🚫 En rupture
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Ajouter les toppings
+                const toppingsHTML = availableToppings.map(topping => {
+                    const isOutOfStock = currentOutOfStock[topping.id];
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); border-bottom: 1px solid var(--gray-200);">
+                            <div>
+                                <strong>🧀 ${topping.name}</strong>
+                                <div class="text-muted" style="font-size: 0.875rem;">Topping (+${topping.price} F)</div>
+                                ${isOutOfStock ? `
+                                    <span class="badge badge-danger">En rupture</span>
+                                ` : ''}
+                            </div>
+                            <div>
+                                ${isOutOfStock ? `
+                                    <button class="btn btn-sm btn-success" onclick="resolveOutOfStock('${topping.id}')">
+                                        ✅ Disponible
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-sm btn-danger" onclick="markOutOfStock('${topping.id}', '${topping.name.replace(/'/g, "\\'")}', 'topping')">
+                                        🚫 En rupture
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Ajouter les sauces
+                const saucesHTML = availableSauces.filter(s => s.id !== 'sauce_none').map(sauce => {
+                    const isOutOfStock = currentOutOfStock[sauce.id];
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-md); border-bottom: 1px solid var(--gray-200);">
+                            <div>
+                                <strong>🥫 ${sauce.name}</strong>
+                                <div class="text-muted" style="font-size: 0.875rem;">Sauce</div>
+                                ${isOutOfStock ? `
+                                    <span class="badge badge-danger">En rupture</span>
+                                ` : ''}
+                            </div>
+                            <div>
+                                ${isOutOfStock ? `
+                                    <button class="btn btn-sm btn-success" onclick="resolveOutOfStock('${sauce.id}')">
+                                        ✅ Disponible
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-sm btn-danger" onclick="markOutOfStock('${sauce.id}', '${sauce.name.replace(/'/g, "\\'")}', 'sauce')">
+                                        🚫 En rupture
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 800px;">
+                        <div class="modal-header">
+                            <h2>🚫 Gestion des ruptures de stock</h2>
+                            <span class="modal-close" onclick="closeOutOfStockModal()">✕</span>
+                        </div>
+                        
+                        <div class="modal-body">
+                            <div style="background: var(--warning); color: white; padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-lg);">
+                                <strong>⚠️ Information:</strong> Marquez les articles, toppings ou sauces en rupture pour alerter les serveurs.
+                            </div>
+                            
+                            <div class="form-group">
+                                <input type="text" id="searchOutOfStock" class="form-control" placeholder="🔍 Rechercher un article, topping ou sauce..." oninput="filterOutOfStockList()">
+                            </div>
+                            
+                            <div style="max-height: 500px; overflow-y: auto;" id="outOfStockListContainer">
+                                <h4 style="margin: var(--spacing-md) 0; padding: var(--spacing-sm); background: var(--gray-100); border-radius: var(--radius);" class="out-section-articles">📦 Articles</h4>
+                                <div class="out-items-articles">${itemsHTML}</div>
+                                
+                                <h4 style="margin: var(--spacing-md) 0; padding: var(--spacing-sm); background: var(--gray-100); border-radius: var(--radius);" class="out-section-toppings">🧀 Toppings</h4>
+                                <div class="out-items-toppings">${toppingsHTML}</div>
+                                
+                                <h4 style="margin: var(--spacing-md) 0; padding: var(--spacing-sm); background: var(--gray-100); border-radius: var(--radius);" class="out-section-sauces">🥫 Sauces</h4>
+                                <div class="out-items-sauces">${saucesHTML}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeOutOfStockModal()">Fermer</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+            } catch (error) {
+                console.error('Erreur chargement ruptures:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        async function markOutOfStock(itemId, itemName, type) {
+            if (!confirm(`Marquer "${itemName}" en rupture ?`)) {
+                return;
+            }
+            
+            try {
+                await db.collection('outOfStock').doc(itemId).set({
+                    itemId: itemId,
+                    itemName: itemName,
+                    type: type,
+                    reportedBy: currentUser.uid,
+                    reportedByName: currentUser.name,
+                    reportedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    resolved: false
+                });
+                
+                alert('✅ Article marqué en rupture. Les serveurs seront alertés.');
+                closeOutOfStockModal();
+                showOutOfStockManager(); // Recharger
+                
+            } catch (error) {
+                console.error('Erreur marquage rupture:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        function filterOutOfStockList() {
+            const searchTerm = document.getElementById('searchOutOfStock')?.value.toLowerCase() || '';
+            
+            // Parcourir tous les items dans chaque section
+            ['articles', 'toppings', 'sauces'].forEach(section => {
+                const container = document.querySelector(`.out-items-${section}`);
+                const sectionHeader = document.querySelector(`.out-section-${section}`);
+                
+                if (!container) return;
+                
+                const items = container.querySelectorAll('[style*="display: flex"]');
+                let visibleCount = 0;
+                
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    if (text.includes(searchTerm)) {
+                        item.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                
+                // Masquer la section si aucun item visible
+                if (sectionHeader) {
+                    sectionHeader.style.display = visibleCount > 0 ? 'block' : 'none';
+                }
+                if (container) {
+                    container.style.display = visibleCount > 0 ? 'block' : 'none';
+                }
+            });
+        }
+        
+        async function resolveOutOfStock(itemId) {
+            try {
+                await db.collection('outOfStock').doc(itemId).update({
+                    resolved: true,
+                    resolvedBy: currentUser.uid,
+                    resolvedByName: currentUser.name,
+                    resolvedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                alert('✅ Article de nouveau disponible.');
+                closeOutOfStockModal();
+                showOutOfStockManager(); // Recharger
+                
+            } catch (error) {
+                console.error('Erreur résolution rupture:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        // Modal liste des ruptures (pour les serveurs)
+        function showOutOfStockList() {
+            const items = Object.values(outOfStockItems);
+            
+            if (items.length === 0) {
+                alert('✅ Aucun article en rupture actuellement.');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'outOfStockListModal';
+            
+            const itemsHTML = items.map(item => `
+                <div style="padding: var(--spacing-md); border-bottom: 1px solid var(--gray-200);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: var(--danger);">🚫 ${item.itemName}</strong>
+                            <div class="text-muted" style="font-size: 0.875rem;">
+                                Signalé par ${item.reportedByName || 'Cuisine'}
+                                ${item.reportedAt ? ` le ${item.reportedAt.toDate().toLocaleString('fr-FR')}` : ''}
+                            </div>
+                        </div>
+                        <span class="badge badge-danger">Indisponible</span>
+                    </div>
+                </div>
+            `).join('');
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2>🚫 Articles en rupture</h2>
+                        <span class="modal-close" onclick="closeOutOfStockListModal()">✕</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div style="background: var(--danger); color: white; padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-lg);">
+                            <strong>⚠️ Attention:</strong> ${items.length} article(s) actuellement indisponible(s).
+                        </div>
+                        
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            ${itemsHTML}
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeOutOfStockListModal()">Fermer</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        function closeOutOfStockModal() {
+            const modal = document.getElementById('outOfStockModal');
+            if (modal) modal.remove();
+        }
+        
+        function closeOutOfStockListModal() {
+            const modal = document.getElementById('outOfStockListModal');
+            if (modal) modal.remove();
+        }
+        
+        // ============================================
         // POINT DE VENTE
         // ============================================
-        function renderPOS(establishment) {
-            // Charger automatiquement les articles pour l'établissement
-            setTimeout(() => loadPOSItems(establishment), 100);
-            
-            const establishmentName = establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba';
-            const establishmentColor = establishment === 'Le_Sha' ? '#667eea' : '#f59e0b';
+        function renderPOS() {
+            // Charger automatiquement tous les articles
+            setTimeout(() => loadPOSItems(), 100);
             
             return `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
                     <div>
                         <h1>💳 Point de Vente</h1>
-                        <div style="display: inline-block; background: ${establishmentColor}; color: white; padding: 0.5rem 1rem; border-radius: var(--radius); font-weight: 700; margin-top: 0.5rem;">
-                            🏪 ${establishmentName}
-                        </div>
                     </div>
-                    <button class="btn btn-primary" onclick="navigateTo('${establishment === 'Le_Sha' ? 'pos-shiba' : 'pos-sha'}')">
-                        🔄 Changer d'établissement
-                    </button>
+                    <div style="display: flex; gap: var(--spacing-md); align-items: center;">
+                        <button class="btn btn-warning" onclick="showOutOfStockList()" style="position: relative;">
+                            🚫 Ruptures
+                            <span id="outOfStockBadge" style="display: none; position: absolute; top: -8px; right: -8px; background: var(--danger); color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; justify-content: center;">0</span>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="pos-layout">
                     <div>
                         <div style="display: flex; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
                             <input type="text" id="searchItems" class="form-control" placeholder="🔍 Rechercher..." oninput="filterPOSItems()">
+                            <select id="establishmentFilter" class="form-control" style="max-width: 200px;" onchange="filterPOSItems()">
+                                <option value="">🏪 Tous les établissements</option>
+                                <option value="Le_Sha">🏪 Le Sha</option>
+                                <option value="Le_Shiba">🏪 Le Shiba</option>
+                            </select>
                             <select id="categoryFilter" class="form-control" style="max-width: 200px;" onchange="filterPOSItems()">
                                 <option value="">Toutes catégories</option>
                             </select>
@@ -1548,7 +2018,14 @@
                     
                     <div class="cart-sidebar">
                         <div>
-                            <h3>Commande - ${establishmentName}</h3>
+                            <h3>Commande</h3>
+                            <div class="form-group">
+                                <label>Établissement</label>
+                                <select id="orderEstablishment" class="form-control">
+                                    <option value="Le_Sha">🏪 Le Sha</option>
+                                    <option value="Le_Shiba">🏪 Le Shiba</option>
+                                </select>
+                            </div>
                             <div class="form-group">
                                 <label>N° Table</label>
                                 <input type="text" id="tableNumber" class="form-control" placeholder="Ex: 12">
@@ -1557,13 +2034,7 @@
                                 <label>Notes (optionnel)</label>
                                 <textarea id="orderNotes" class="form-control" rows="2" placeholder="Instructions spéciales..."></textarea>
                             </div>
-                        </div>
-                        
-                        <div class="cart-items" id="cartItems">
-                            <p class="text-muted text-center">Panier vide</p>
-                        </div>
-                        
-                        <div>
+                            
                             <div style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius); margin-bottom: var(--spacing-sm);">
                                 <div style="display: flex; justify-content: space-between;">
                                     <span>Sous-total HT</span>
@@ -1575,25 +2046,24 @@
                                 </div>
                             </div>
                             <div class="cart-total" id="cartTotal">Total: 0 F</div>
-                            <button class="btn btn-success" style="width: 100%; padding: var(--spacing-lg); font-size: 1.1rem;" onclick="processOrder('${establishment}')">
+                            <button class="btn btn-success" style="width: 100%; padding: var(--spacing-lg); font-size: 1.1rem; margin-bottom: var(--spacing-sm);" onclick="processOrder()">
                                 ✓ Valider la Commande
                             </button>
-                            <button class="btn btn-danger" style="width: 100%; padding: var(--spacing-sm); margin-top: var(--spacing-sm);" onclick="clearCart()">
+                            <button class="btn btn-danger" style="width: 100%; padding: var(--spacing-sm);" onclick="clearCart()">
                                 🗑️ Vider le panier
                             </button>
+                        </div>
+                        
+                        <div class="cart-items" id="cartItems" style="margin-top: var(--spacing-lg);">
+                            <p class="text-muted text-center">Panier vide</p>
                         </div>
                     </div>
                 </div>
             `;
         }
         
-        async function loadPOSItems(establishment) {
-            if (!establishment) return;
-            
-            currentEstablishment = establishment;
-            
+        async function loadPOSItems() {
             const snapshot = await db.collection('items')
-                .where('establishments', 'array-contains', establishment)
                 .where('active', '==', true)
                 .where('type', '==', 'finished')
                 .get();
@@ -1619,25 +2089,36 @@
                 return;
             }
             
-            grid.innerHTML = items.map(item => `
-                <div class="item-card" onclick='showCustomizationModal(${JSON.stringify(item).replace(/'/g, "&apos;")})'>
-                    <div class="item-name">${item.name}</div>
-                    <div class="text-muted" style="font-size: 0.875rem; margin: 0.5rem 0;">${item.category}</div>
-                    <div class="item-price">${item.price.toLocaleString()} F</div>
-                    ${item.customizable ? '<div style="font-size: 0.75rem; color: var(--primary); margin-top: 0.5rem;">⚙️ Personnalisable</div>' : ''}
-                </div>
-            `).join('');
+            grid.innerHTML = items.map(item => {
+                const isOutOfStock = outOfStockItems[item.id];
+                const disabled = isOutOfStock ? 'opacity: 0.5; cursor: not-allowed;' : '';
+                const badge = isOutOfStock ? '<div style="background: var(--danger); color: white; padding: 0.25rem 0.5rem; border-radius: var(--radius); font-size: 0.75rem; margin-top: 0.5rem; font-weight: 600;">🚫 RUPTURE</div>' : '';
+                const onclick = isOutOfStock ? `onclick="alert('⚠️ Article en rupture de stock\\n\\nCet article est actuellement indisponible.\\nConsultez la liste des ruptures pour plus d\\'informations.')"` : `onclick='showCustomizationModal(${JSON.stringify(item).replace(/'/g, "&apos;")})'`;
+                
+                return `
+                    <div class="item-card" ${onclick} style="${disabled}">
+                        <div class="item-name">${item.name}</div>
+                        <div class="text-muted" style="font-size: 0.875rem; margin: 0.5rem 0;">${item.category}</div>
+                        <div class="item-price">${item.price.toLocaleString()} F</div>
+                        ${item.customizable ? '<div style="font-size: 0.75rem; color: var(--primary); margin-top: 0.5rem;">⚙️ Personnalisable</div>' : ''}
+                        ${badge}
+                    </div>
+                `;
+            }).join('');
         }
         
         function filterPOSItems() {
             const search = document.getElementById('searchItems').value.toLowerCase();
             const category = document.getElementById('categoryFilter').value;
+            const establishment = document.getElementById('establishmentFilter')?.value || '';
             
             const filtered = allItems.filter(item => {
                 const matchSearch = item.name.toLowerCase().includes(search) ||
-                                   item.category.toLowerCase().includes(search);
+                                   (item.category && item.category.toLowerCase().includes(search));
                 const matchCategory = !category || item.category === category;
-                return matchSearch && matchCategory;
+                const matchEstablishment = !establishment || 
+                    (item.establishments && item.establishments.includes(establishment));
+                return matchSearch && matchCategory && matchEstablishment;
             });
             renderPOSItems(filtered);
         }
@@ -1646,26 +2127,26 @@
         // CUSTOMIZATION MODAL
         // ============================================
         const availableToppings = [
-            { id: 'cheese', name: 'Fromage', price: 200 },
-            { id: 'bacon', name: 'Bacon', price: 300 },
-            { id: 'egg', name: 'Œuf', price: 150 },
-            { id: 'avocado', name: 'Avocat', price: 350 },
-            { id: 'onions', name: 'Oignons', price: 100 },
-            { id: 'tomato', name: 'Tomate', price: 100 },
-            { id: 'pickles', name: 'Cornichons', price: 100 },
-            { id: 'jalapeno', name: 'Jalapeño', price: 150 },
-            { id: 'mushroom', name: 'Champignons', price: 200 }
+            { id: 'topping_cheese', name: 'Fromage', price: 200 },
+            { id: 'topping_bacon', name: 'Bacon', price: 300 },
+            { id: 'topping_egg', name: 'Œuf', price: 150 },
+            { id: 'topping_avocado', name: 'Avocat', price: 350 },
+            { id: 'topping_onions', name: 'Oignons', price: 100 },
+            { id: 'topping_tomato', name: 'Tomate', price: 100 },
+            { id: 'topping_pickles', name: 'Cornichons', price: 100 },
+            { id: 'topping_jalapeno', name: 'Jalapeño', price: 150 },
+            { id: 'topping_mushroom', name: 'Champignons', price: 200 }
         ];
         
         const availableSauces = [
-            { id: 'ketchup', name: 'Ketchup' },
-            { id: 'mayo', name: 'Mayonnaise' },
-            { id: 'mustard', name: 'Moutarde' },
-            { id: 'bbq', name: 'BBQ' },
-            { id: 'spicy', name: 'Piquante' },
-            { id: 'sweet-chili', name: 'Sweet Chili' },
-            { id: 'teriyaki', name: 'Teriyaki' },
-            { id: 'none', name: 'Sans sauce' }
+            { id: 'sauce_ketchup', name: 'Ketchup' },
+            { id: 'sauce_mayo', name: 'Mayonnaise' },
+            { id: 'sauce_mustard', name: 'Moutarde' },
+            { id: 'sauce_bbq', name: 'BBQ' },
+            { id: 'sauce_spicy', name: 'Piquante' },
+            { id: 'sauce_sweet_chili', name: 'Sweet Chili' },
+            { id: 'sauce_teriyaki', name: 'Teriyaki' },
+            { id: 'sauce_none', name: 'Sans sauce' }
         ];
         
         let currentCustomizingItem = null;
@@ -1707,15 +2188,19 @@
                         <div class="customization-section">
                             <h4>🧀 Suppléments (optionnel)</h4>
                             <div class="topping-grid" id="toppingsGrid">
-                                ${availableToppings.map(topping => `
-                                    <div class="topping-item" onclick="toggleTopping('${topping.id}')">
-                                        <input type="checkbox" id="topping-${topping.id}" onclick="event.stopPropagation(); toggleTopping('${topping.id}')">
+                                ${availableToppings.map(topping => {
+                                    const isOutOfStock = outOfStockItems[topping.id];
+                                    const disabled = isOutOfStock ? 'opacity: 0.5; pointer-events: none;' : '';
+                                    const badge = isOutOfStock ? '<span style="color: var(--danger); font-size: 0.75rem; font-weight: 600;">🚫 Rupture</span>' : '';
+                                    return `
+                                    <div class="topping-item" onclick="toggleTopping('${topping.id}')" style="${disabled}">
+                                        <input type="checkbox" id="topping-${topping.id}" onclick="event.stopPropagation(); toggleTopping('${topping.id}')" ${isOutOfStock ? 'disabled' : ''}>
                                         <label for="topping-${topping.id}" style="cursor: pointer; flex: 1;">
                                             ${topping.name}<br>
-                                            <small style="color: var(--primary);">+${topping.price} F</small>
+                                            ${isOutOfStock ? badge : `<small style="color: var(--primary);">+${topping.price} F</small>`}
                                         </label>
                                     </div>
-                                `).join('')}
+                                `}).join('')}
                             </div>
                         </div>
                         
@@ -1723,11 +2208,15 @@
                         <div class="customization-section">
                             <h4>🥫 Sauce (choisir une)</h4>
                             <div class="sauce-selector" id="sauceSelector">
-                                ${availableSauces.map(sauce => `
-                                    <div class="sauce-option" onclick="selectSauce('${sauce.id}')">
-                                        ${sauce.name}
+                                ${availableSauces.map(sauce => {
+                                    const isOutOfStock = outOfStockItems[sauce.id];
+                                    const disabled = isOutOfStock ? 'opacity: 0.5; pointer-events: none; background: var(--gray-200);' : '';
+                                    const badge = isOutOfStock ? ' 🚫' : '';
+                                    return `
+                                    <div class="sauce-option" onclick="selectSauce('${sauce.id}')" style="${disabled}">
+                                        ${sauce.name}${badge}
                                     </div>
-                                `).join('')}
+                                `}).join('')}
                             </div>
                         </div>
                         
@@ -1950,9 +2439,10 @@
             }
         }
         
-        async function processOrder(establishment) {
+        async function processOrder() {
             const tableNumber = document.getElementById('tableNumber').value;
             const orderNotes = document.getElementById('orderNotes')?.value || '';
+            const selectedEstablishment = document.getElementById('orderEstablishment')?.value || 'Le_Sha';
             
             if (!tableNumber) {
                 alert('Veuillez saisir un numéro de table');
@@ -1970,7 +2460,7 @@
                 
                 const orderData = {
                     tableNumber: tableNumber,
-                    establishmentId: establishment || currentEstablishment,
+                    establishmentId: selectedEstablishment,
                     notes: orderNotes,
                     items: cart.map(item => ({
                         itemId: item.id,
@@ -1997,7 +2487,7 @@
                         for (const component of cartItem.components) {
                             const stockQuery = await db.collection('stock')
                                 .where('itemId', '==', component.itemId)
-                                .where('establishmentId', '==', establishment || currentEstablishment)
+                                .where('establishmentId', '==', selectedEstablishment)
                                 .get();
                             
                             if (!stockQuery.empty) {
@@ -2234,23 +2724,12 @@
         // ============================================
         // ARTICLES
         // ============================================
-        function renderItems(establishment) {
-            loadItemsList(establishment);
-            
-            const establishmentName = establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba';
-            const establishmentColor = establishment === 'Le_Sha' ? '#667eea' : '#f59e0b';
+        function renderItems() {
+            loadItemsList();
             
             return `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
-                    <div>
-                        <h1>📦 Articles</h1>
-                        <div style="display: inline-block; background: ${establishmentColor}; color: white; padding: 0.5rem 1rem; border-radius: var(--radius); font-weight: 700; margin-top: 0.5rem;">
-                            🏪 ${establishmentName}
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" onclick="navigateTo('${establishment === 'Le_Sha' ? 'items-shiba' : 'items-sha'}')">
-                        🔄 Changer d'établissement
-                    </button>
+                    <h1>📦 Articles (Produits Finis)</h1>
                 </div>
                 
                 <div class="card">
@@ -2259,10 +2738,10 @@
                         <div style="display: flex; gap: var(--spacing-md);">
                             <select id="typeFilter" class="form-control" style="max-width: 200px;" onchange="filterArticles()">
                                 <option value="">Tous les types</option>
-                                <option value="finished">Articles finis</option>
+                                <option value="finished">Produits finis</option>
                                 <option value="raw">Matières premières</option>
                             </select>
-                            <button class="btn btn-primary" onclick="showAddItemForm('${establishment}')">+ Nouvel Article</button>
+                            <button class="btn btn-primary" onclick="showAddItemForm()">+ Nouvel Article</button>
                         </div>
                     </div>
                     
@@ -2289,9 +2768,8 @@
         
         let allArticles = [];
         
-        async function loadItemsList(establishment) {
+        async function loadItemsList() {
             const snapshot = await db.collection('items')
-                .where('establishments', 'array-contains', establishment)
                 .get();
             
             allArticles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -2316,7 +2794,7 @@
                     <td><strong>${(item.price || item.cost || 0).toLocaleString()} F</strong></td>
                     <td>
                         <span class="badge ${item.type === 'finished' ? 'badge-success' : 'badge-warning'}">
-                            ${item.type === 'finished' ? '✓ Fini' : item.type === 'raw' ? '🧩 Matière' : 'N/A'}
+                            ${item.type === 'finished' ? '✓ Produit fini' : item.type === 'raw' ? '🧩 Matière première' : 'N/A'}
                         </span>
                     </td>
                     <td>
@@ -2350,7 +2828,7 @@
             renderArticlesList(filtered);
         }
         
-        async function showAddItemForm(establishment) {
+        async function showAddItemForm() {
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.id = 'addItemModal';
@@ -2358,7 +2836,7 @@
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 700px;">
                     <div class="modal-header">
-                        <h2>➕ Nouvel Article / Produit Fini</h2>
+                        <h2>➕ Nouvel Article (Produit Fini)</h2>
                         <span class="modal-close" onclick="closeAddItemModal()">✕</span>
                     </div>
                     <div class="modal-body">
@@ -2500,8 +2978,9 @@
                 closeAddItemModal();
                 
                 // Recharger
-                if (currentPage === 'items-sha') loadItemsList('Le_Sha');
-                if (currentPage === 'items-shiba') loadItemsList('Le_Shiba');
+                if (currentPage === 'items') {
+                    loadItemsList();
+                }
                 
             } catch (error) {
                 alert('❌ Erreur: ' + error.message);
@@ -2653,8 +3132,9 @@
                 closeEditItemModal();
                 
                 // Recharger
-                if (currentPage === 'items-sha') loadItemsList('Le_Sha');
-                if (currentPage === 'items-shiba') loadItemsList('Le_Shiba');
+                if (currentPage === 'items') {
+                    loadItemsList();
+                }
                 
             } catch (error) {
                 alert('❌ Erreur: ' + error.message);
@@ -2678,8 +3158,9 @@
                 
                 alert('✅ Statut mis à jour !');
                 // Recharger en fonction de la page active
-                if (currentPage === 'items-sha') loadItemsList('Le_Sha');
-                if (currentPage === 'items-shiba') loadItemsList('Le_Shiba');
+                if (currentPage === 'items') {
+                    loadItemsList();
+                }
             } catch (error) {
                 alert('❌ Erreur: ' + error.message);
             }
@@ -2688,24 +3169,13 @@
         // ============================================
         // STOCKS
         // ============================================
-        function renderStock(establishment) {
-            const establishmentName = establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba';
-            const establishmentColor = establishment === 'Le_Sha' ? '#667eea' : '#f59e0b';
-            
+        function renderStock() {
             // Charger les données APRÈS le rendu du HTML
-            setTimeout(() => loadStockData(establishment), 0);
+            setTimeout(() => loadStockData(), 0);
             
             return `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-xl);">
-                    <div>
-                        <h1>📊 Stocks & Matières Premières</h1>
-                        <div style="display: inline-block; background: ${establishmentColor}; color: white; padding: 0.5rem 1rem; border-radius: var(--radius); font-weight: 700; margin-top: 0.5rem;">
-                            🏪 ${establishmentName}
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" onclick="navigateTo('${establishment === 'Le_Sha' ? 'stock-shiba' : 'stock-sha'}')">
-                        🔄 Changer d'établissement
-                    </button>
+                    <h1>📊 Stock (Matières Premières)</h1>
                 </div>
                 
                 <div class="card">
@@ -2718,11 +3188,11 @@
                                 <option value="low">⚡ Faible</option>
                                 <option value="out">⚠️ Rupture</option>
                             </select>
-                            <button class="btn btn-success" onclick="showBulkStockAdjustment('${establishment}')">
+                            <button class="btn btn-success" onclick="showBulkStockAdjustment()">
                                 📥 Réception Livraison
                             </button>
-                            <button class="btn btn-primary" onclick="showAddIngredientModal('${establishment}')">
-                                ➕ Nouveau Ingrédient
+                            <button class="btn btn-primary" onclick="showAddIngredientModal()">
+                                ➕ Nouvelle Matière Première
                             </button>
                         </div>
                     </div>
@@ -2731,7 +3201,7 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Ingrédient / Matière Première</th>
+                                    <th>Matière Première</th>
                                     <th>Catégorie</th>
                                     <th>Unité</th>
                                     <th>Quantité</th>
@@ -2751,13 +3221,11 @@
         let allStockData = [];
         let allIngredientsMap = {};
         
-        async function loadStockData(establishment) {
-            if (!establishment) return;
-            
+        async function loadStockData() {
             const tbody = document.getElementById('stockTableBody');
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">⏳ Chargement des ingrédients...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">⏳ Chargement des matières premières...</td></tr>';
             
-            // 1. Charger TOUS les ingrédients (matières premières) en UNE SEULE requête
+            // 1. Charger TOUTES les matières premières en UNE SEULE requête
             if (Object.keys(allIngredientsMap).length === 0) {
                 const ingredientsSnap = await db.collection('items')
                     .where('type', '==', 'raw')
@@ -2771,14 +3239,13 @@
             
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">⏳ Chargement des stocks...</td></tr>';
             
-            // 2. Charger les stocks pour cet établissement
+            // 2. Charger TOUS les stocks (sans filtre d'établissement)
             const snapshot = await db.collection('stock')
-                .where('establishmentId', '==', establishment)
                 .get();
             
             allStockData = [];
             
-            // 3. Associer les stocks avec les ingrédients (en mémoire, pas de requête)
+            // 3. Associer les stocks avec les matières premières (en mémoire, pas de requête)
             snapshot.docs.forEach(doc => {
                 const stockData = doc.data();
                 const itemData = allIngredientsMap[stockData.itemId];
@@ -2833,7 +3300,7 @@
                         <tr>
                             <td style="padding-left: 2rem;">
                                 <strong>${item.name}</strong>
-                                ${item.isIngredient ? '<span class="badge badge-warning" style="margin-left: 0.5rem; font-size: 0.7rem;">Ingrédient</span>' : ''}
+                                ${item.type === 'raw' ? '<span class="badge badge-warning" style="margin-left: 0.5rem; font-size: 0.7rem;">🧩 Matière première</span>' : ''}
                             </td>
                             <td>${item.category || 'N/A'}</td>
                             <td><strong>${item.unit || 'unité'}</strong></td>
@@ -2979,8 +3446,9 @@
                 closeStockAdjustModal();
                 
                 // Recharger la page stock actuelle
-                if (currentPage === 'stock-sha') loadStockData('Le_Sha');
-                if (currentPage === 'stock-shiba') loadStockData('Le_Shiba');
+                if (currentPage === 'stock') {
+                    loadStockData();
+                }
             } catch (error) {
                 alert('❌ Erreur: ' + error.message);
             }
@@ -2991,8 +3459,9 @@
             if (modal) modal.remove();
         }
         
-        async function showBulkStockAdjustment(establishment) {
-            // Charger tous les ingrédients
+        async function showBulkStockAdjustment() {
+            try {
+            // Charger toutes les matières premières
             const ingredientsSnap = await db.collection('items')
                 .where('type', '==', 'raw')
                 .where('active', '==', true)
@@ -3003,7 +3472,7 @@
             const ingredients = ingredientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             
             if (ingredients.length === 0) {
-                alert('⚠️ Aucun ingrédient disponible');
+                alert('⚠️ Aucune matière première disponible');
                 return;
             }
             
@@ -3050,8 +3519,12 @@
                         <span class="modal-close" onclick="closeBulkStockModal()">✕</span>
                     </div>
                     <div class="modal-body">
-                        <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: linear-gradient(135deg, ${establishment === 'Le_Sha' ? '#667eea' : '#f59e0b'}, ${establishment === 'Le_Sha' ? '#764ba2' : '#f97316'}); color: white; border-radius: var(--radius);">
-                            <strong style="font-size: 1.1rem;">🏪 ${establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba'}</strong>
+                        <div class="form-group">
+                            <label>Établissement</label>
+                            <select id="bulkEstablishment" class="form-control">
+                                <option value="Le_Sha">🏪 Le Sha</option>
+                                <option value="Le_Shiba">🏪 Le Shiba</option>
+                            </select>
                         </div>
                         
                         <div class="form-group">
@@ -3101,10 +3574,15 @@
                 document.getElementById('bulkSummary').style.display = count > 0 ? 'block' : 'none';
                 document.getElementById('bulkSaveBtn').disabled = count === 0;
             }
+            } catch (error) {
+                alert('❌ Erreur: ' + error.message);
+                console.error(error);
+            }
         }
         
-        async function saveBulkStockAdjustment(establishment) {
+        async function saveBulkStockAdjustment() {
             const reason = document.getElementById('bulkReason').value || 'Livraison';
+            const establishment = document.getElementById('bulkEstablishment').value;
             const updates = [];
             
             for (const ingId of window.bulkSelectedIngredients) {
@@ -3184,8 +3662,9 @@
                 closeBulkStockModal();
                 
                 // Recharger
-                if (currentPage === 'stock-sha') loadStockData('Le_Sha');
-                if (currentPage === 'stock-shiba') loadStockData('Le_Shiba');
+                if (currentPage === 'stock') {
+                    loadStockData();
+                }
                 
             } catch (error) {
                 alert('❌ Erreur: ' + error.message);
@@ -3199,7 +3678,7 @@
             window.bulkSelectedIngredients = null;
         }
         
-        async function showAddIngredientModal(establishment) {
+        async function showAddIngredientModal() {
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.id = 'addIngredientModal';
@@ -3207,12 +3686,12 @@
             modal.innerHTML = `
                 <div class="modal-content" style="max-width: 600px;">
                     <div class="modal-header">
-                        <h2>➕ Nouveau Ingrédient / Matière Première</h2>
+                        <h2>➕ Nouvelle Matière Première</h2>
                         <span class="modal-close" onclick="closeAddIngredientModal()">✕</span>
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label>Nom de l'ingrédient *</label>
+                            <label>Nom de la matière première *</label>
                             <input type="text" id="newIngName" class="form-control" placeholder="Ex: Farine, Huile d'olive...">
                         </div>
                         
@@ -3251,15 +3730,15 @@
                         <div class="form-group">
                             <label>Établissement</label>
                             <select id="newIngEstablishment" class="form-control">
-                                <option value="${establishment}" selected>${establishment === 'Le_Sha' ? 'Le Sha' : 'Le Shiba'}</option>
-                                <option value="${establishment === 'Le_Sha' ? 'Le_Shiba' : 'Le_Sha'}">${establishment === 'Le_Sha' ? 'Le Shiba' : 'Le Sha'}</option>
+                                <option value="Le_Sha">🏪 Le Sha</option>
+                                <option value="Le_Shiba">🏪 Le Shiba</option>
                                 <option value="both">Les deux établissements</option>
                             </select>
                         </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-secondary" onclick="closeAddIngredientModal()">Annuler</button>
-                        <button class="btn btn-primary" onclick="saveNewIngredient()">💾 Créer l'ingrédient</button>
+                        <button class="btn btn-primary" onclick="saveNewIngredient()">💾 Créer la matière première</button>
                     </div>
                 </div>
             `;
@@ -3306,13 +3785,14 @@
                     });
                 }
                 
-                alert(`✅ Ingrédient "${name}" créé avec succès !`);
+                alert(`✅ Matière première "${name}" créée avec succès !`);
                 closeAddIngredientModal();
                 
                 // Recharger et vider le cache
                 allIngredientsMap = {};
-                if (currentPage === 'stock-sha') loadStockData('Le_Sha');
-                if (currentPage === 'stock-shiba') loadStockData('Le_Shiba');
+                if (currentPage === 'stock') {
+                    loadStockData();
+                }
                 
             } catch (error) {
                 alert('❌ Erreur: ' + error.message);
@@ -3971,9 +4451,498 @@
         }
         
         // ============================================
+        // PAGE GESTION DES UTILISATEURS
+        // ============================================
+        function renderUsers() {
+            loadUsersData();
+            return `
+                <h1>👥 Gestion des accès utilisateurs</h1>
+                
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                        <h3>Liste des utilisateurs</h3>
+                        <button class="btn btn-primary" onclick="showCreateUserModal()">
+                            ➕ Créer un utilisateur
+                        </button>
+                    </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Email</th>
+                                <th>Rôle</th>
+                                <th>Statut</th>
+                                <th>Permissions</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr><td colspan="6" class="text-center text-muted">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+        
+        async function loadUsersData() {
+            try {
+                const snapshot = await db.collection('users').orderBy('name').get();
+                const usersTableBody = document.getElementById('usersTableBody');
+                
+                if (!usersTableBody) return;
+                
+                if (snapshot.empty) {
+                    usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">Aucun utilisateur</td></tr>';
+                    return;
+                }
+                
+                usersTableBody.innerHTML = snapshot.docs.map(doc => {
+                    const user = doc.data();
+                    const permissions = user.permissions || {};
+                    const allowedPages = Object.entries(permissions).filter(([k, v]) => v).map(([k]) => k);
+                    
+                    return `
+                        <tr>
+                            <td><strong>${user.name || 'Sans nom'}</strong></td>
+                            <td>${user.email || 'N/A'}</td>
+                            <td>
+                                <span class="badge ${user.role === 'admin' ? 'badge-primary' : user.role === 'serveur' ? 'badge-info' : 'badge-warning'}">
+                                    ${user.role || 'Non défini'}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge ${user.active ? 'badge-success' : 'badge-danger'}">
+                                    ${user.active ? 'Actif' : 'Inactif'}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    ${allowedPages.length > 0 ? allowedPages.join(', ') : 'Aucune'}
+                                </small>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="showEditUserModal('${doc.id}')">
+                                    ✏️ Modifier
+                                </button>
+                                <button class="btn btn-sm ${user.active ? 'btn-danger' : 'btn-success'}" 
+                                    onclick="toggleUserStatus('${doc.id}', ${!user.active})">
+                                    ${user.active ? '🚫 Désactiver' : '✅ Activer'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Erreur lors du chargement des utilisateurs:', error);
+                const usersTableBody = document.getElementById('usersTableBody');
+                if (usersTableBody) {
+                    usersTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Erreur de chargement</td></tr>';
+                }
+            }
+        }
+        
+        function showCreateUserModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.id = 'userModal';
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 700px;">
+                    <div class="modal-header">
+                        <h2>➕ Créer un utilisateur</h2>
+                        <span class="modal-close" onclick="closeUserModal()">✕</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <form id="createUserForm" onsubmit="handleCreateUser(event)">
+                            <div class="form-group">
+                                <label>Nom complet *</label>
+                                <input type="text" id="userName" class="form-control" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Email *</label>
+                                <input type="email" id="userEmail" class="form-control" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Mot de passe *</label>
+                                <input type="password" id="userPassword" class="form-control" required minlength="6">
+                                <small class="text-muted">Minimum 6 caractères</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Rôle *</label>
+                                <select id="userRole" class="form-control" required onchange="updatePermissionsPreset()">
+                                    <option value="">-- Sélectionner --</option>
+                                    <option value="admin">Administrateur (accès complet)</option>
+                                    <option value="serveur">Serveur (POS + KDS)</option>
+                                    <option value="cuisine">Cuisine (KDS uniquement)</option>
+                                    <option value="custom">Personnalisé</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label><strong>Permissions d'accès aux pages</strong></label>
+                                <div style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius);">
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-sm);">
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-dashboard" class="permission-checkbox">
+                                            <span>📊 Dashboard</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-pos" class="permission-checkbox">
+                                            <span>💳 Point de Vente</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-kds" class="permission-checkbox">
+                                            <span>🍳 Cuisine (KDS)</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-payments" class="permission-checkbox">
+                                            <span>💰 Paiements</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-items" class="permission-checkbox">
+                                            <span>📦 Articles</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-stock" class="permission-checkbox">
+                                            <span>📊 Stock</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-recipes" class="permission-checkbox">
+                                            <span>📖 Recettes (BOM)</span>
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                            <input type="checkbox" id="perm-reports" class="permission-checkbox">
+                                            <span>📈 Rapports</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                    <input type="checkbox" id="userActive" checked>
+                                    <span>Compte actif</span>
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeUserModal()">Annuler</button>
+                        <button class="btn btn-success" onclick="document.getElementById('createUserForm').requestSubmit()">
+                            💾 Créer l'utilisateur
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        function updatePermissionsPreset() {
+            const role = document.getElementById('userRole')?.value;
+            const checkboxes = document.querySelectorAll('.permission-checkbox');
+            
+            // Désélectionner tout
+            checkboxes.forEach(cb => cb.checked = false);
+            
+            if (role === 'admin') {
+                // Admin : tout
+                checkboxes.forEach(cb => cb.checked = true);
+            } else if (role === 'serveur') {
+                // Serveur : POS + KDS + Paiements
+                document.getElementById('perm-dashboard').checked = true;
+                document.getElementById('perm-pos').checked = true;
+                document.getElementById('perm-kds').checked = true;
+                document.getElementById('perm-payments').checked = true;
+            } else if (role === 'cuisine') {
+                // Cuisine : KDS uniquement
+                document.getElementById('perm-kds').checked = true;
+            }
+            // Si custom : laisser l'utilisateur choisir
+        }
+        
+        async function handleCreateUser(event) {
+            event.preventDefault();
+            
+            try {
+                const name = document.getElementById('userName').value.trim();
+                const email = document.getElementById('userEmail').value.trim();
+                const password = document.getElementById('userPassword').value;
+                const role = document.getElementById('userRole').value;
+                const active = document.getElementById('userActive').checked;
+                
+                // Récupérer les permissions
+                const permissions = {
+                    'dashboard': document.getElementById('perm-dashboard').checked,
+                    'pos': document.getElementById('perm-pos').checked,
+                    'kds': document.getElementById('perm-kds').checked,
+                    'payments': document.getElementById('perm-payments').checked,
+                    'items': document.getElementById('perm-items').checked,
+                    'stock': document.getElementById('perm-stock').checked,
+                    'recipes': document.getElementById('perm-recipes').checked,
+                    'reports': document.getElementById('perm-reports').checked
+                };
+                
+                // Créer l'utilisateur dans Firebase Auth
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const userId = userCredential.user.uid;
+                
+                // Créer le document utilisateur dans Firestore
+                await db.collection('users').doc(userId).set({
+                    name: name,
+                    email: email,
+                    role: role,
+                    active: active,
+                    permissions: permissions,
+                    createdAt: new Date(),
+                    createdBy: currentUser.uid
+                });
+                
+                alert('✅ Utilisateur créé avec succès !');
+                closeUserModal();
+                loadUsersData();
+                
+                // Se reconnecter avec le compte admin actuel
+                // (la création a déconnecté l'admin)
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Erreur création utilisateur:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        async function showEditUserModal(userId) {
+            try {
+                const userDoc = await db.collection('users').doc(userId).get();
+                if (!userDoc.exists) {
+                    alert('❌ Utilisateur introuvable');
+                    return;
+                }
+                
+                const user = userDoc.data();
+                const permissions = user.permissions || {};
+                
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.id = 'userModal';
+                
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 700px;">
+                        <div class="modal-header">
+                            <h2>✏️ Modifier l'utilisateur</h2>
+                            <span class="modal-close" onclick="closeUserModal()">✕</span>
+                        </div>
+                        
+                        <div class="modal-body">
+                            <form id="editUserForm" onsubmit="handleEditUser(event, '${userId}')">
+                                <div class="form-group">
+                                    <label>Nom complet *</label>
+                                    <input type="text" id="editUserName" class="form-control" value="${user.name || ''}" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Email</label>
+                                    <input type="email" class="form-control" value="${user.email || ''}" disabled>
+                                    <small class="text-muted">L'email ne peut pas être modifié</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Rôle *</label>
+                                    <select id="editUserRole" class="form-control" required onchange="updateEditPermissionsPreset()">
+                                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrateur (accès complet)</option>
+                                        <option value="serveur" ${user.role === 'serveur' ? 'selected' : ''}>Serveur (POS + KDS)</option>
+                                        <option value="cuisine" ${user.role === 'cuisine' ? 'selected' : ''}>Cuisine (KDS uniquement)</option>
+                                        <option value="custom" ${!['admin', 'serveur', 'cuisine'].includes(user.role) ? 'selected' : ''}>Personnalisé</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label><strong>Permissions d'accès aux pages</strong></label>
+                                    <div style="background: var(--gray-50); padding: var(--spacing-md); border-radius: var(--radius);">
+                                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-sm);">
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-dashboard" class="edit-permission-checkbox" ${permissions['dashboard'] ? 'checked' : ''}>
+                                                <span>📊 Dashboard</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-pos" class="edit-permission-checkbox" ${permissions['pos'] ? 'checked' : ''}>
+                                                <span>💳 Point de Vente</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-kds" class="edit-permission-checkbox" ${permissions['kds'] ? 'checked' : ''}>
+                                                <span>🍳 Cuisine (KDS)</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-payments" class="edit-permission-checkbox" ${permissions['payments'] ? 'checked' : ''}>
+                                                <span>💰 Paiements</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-items" class="edit-permission-checkbox" ${permissions['items'] ? 'checked' : ''}>
+                                                <span>📦 Articles</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-stock" class="edit-permission-checkbox" ${permissions['stock'] ? 'checked' : ''}>
+                                                <span>📊 Stock</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-recipes" class="edit-permission-checkbox" ${permissions['recipes'] ? 'checked' : ''}>
+                                                <span>📖 Recettes (BOM)</span>
+                                            </label>
+                                            <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                                <input type="checkbox" id="edit-perm-reports" class="edit-permission-checkbox" ${permissions['reports'] ? 'checked' : ''}>
+                                                <span>📈 Rapports</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                                        <input type="checkbox" id="editUserActive" ${user.active ? 'checked' : ''}>
+                                        <span>Compte actif</span>
+                                    </label>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeUserModal()">Annuler</button>
+                            <button class="btn btn-success" onclick="document.getElementById('editUserForm').requestSubmit()">
+                                💾 Enregistrer les modifications
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+            } catch (error) {
+                console.error('Erreur chargement utilisateur:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        function updateEditPermissionsPreset() {
+            const role = document.getElementById('editUserRole')?.value;
+            const checkboxes = document.querySelectorAll('.edit-permission-checkbox');
+            
+            // Désélectionner tout
+            checkboxes.forEach(cb => cb.checked = false);
+            
+            if (role === 'admin') {
+                // Admin : tout
+                checkboxes.forEach(cb => cb.checked = true);
+            } else if (role === 'serveur') {
+                // Serveur : POS + KDS + Paiements
+                document.getElementById('edit-perm-dashboard').checked = true;
+                document.getElementById('edit-perm-pos').checked = true;
+                document.getElementById('edit-perm-kds').checked = true;
+                document.getElementById('edit-perm-payments').checked = true;
+            } else if (role === 'cuisine') {
+                // Cuisine : KDS uniquement
+                document.getElementById('edit-perm-kds').checked = true;
+            }
+            // Si custom : laisser l'utilisateur choisir
+        }
+        
+        async function handleEditUser(event, userId) {
+            event.preventDefault();
+            
+            try {
+                const name = document.getElementById('editUserName').value.trim();
+                const role = document.getElementById('editUserRole').value;
+                const active = document.getElementById('editUserActive').checked;
+                
+                // Récupérer les permissions
+                const permissions = {
+                    'dashboard': document.getElementById('edit-perm-dashboard').checked,
+                    'pos': document.getElementById('edit-perm-pos').checked,
+                    'kds': document.getElementById('edit-perm-kds').checked,
+                    'payments': document.getElementById('edit-perm-payments').checked,
+                    'items': document.getElementById('edit-perm-items').checked,
+                    'stock': document.getElementById('edit-perm-stock').checked,
+                    'recipes': document.getElementById('edit-perm-recipes').checked,
+                    'reports': document.getElementById('edit-perm-reports').checked
+                };
+                
+                // Mettre à jour le document utilisateur
+                await db.collection('users').doc(userId).update({
+                    name: name,
+                    role: role,
+                    active: active,
+                    permissions: permissions,
+                    updatedAt: new Date(),
+                    updatedBy: currentUser.uid
+                });
+                
+                alert('✅ Utilisateur modifié avec succès !');
+                closeUserModal();
+                loadUsersData();
+                
+            } catch (error) {
+                console.error('Erreur modification utilisateur:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        async function toggleUserStatus(userId, newStatus) {
+            if (!confirm(`Êtes-vous sûr de vouloir ${newStatus ? 'activer' : 'désactiver'} cet utilisateur ?`)) {
+                return;
+            }
+            
+            try {
+                await db.collection('users').doc(userId).update({
+                    active: newStatus,
+                    updatedAt: new Date(),
+                    updatedBy: currentUser.uid
+                });
+                
+                alert(`✅ Utilisateur ${newStatus ? 'activé' : 'désactivé'} avec succès !`);
+                loadUsersData();
+                
+            } catch (error) {
+                console.error('Erreur changement statut:', error);
+                alert('❌ Erreur: ' + error.message);
+            }
+        }
+        
+        function closeUserModal() {
+            const modal = document.getElementById('userModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+        
+        // ============================================
         // NAVIGATION
         // ============================================
         function navigateTo(page) {
+            // Vérifier les permissions
+            const permissions = currentUser.permissions || {};
+            const isAdmin = currentUser.role === 'admin';
+            
+            // Pages nécessitant une vérification de permission
+            const protectedPages = ['dashboard', 'pos', 'kds', 'payments', 'items', 'stock', 'recipes', 'reports'];
+            
+            // Vérifier l'accès
+            if (protectedPages.includes(page) && !isAdmin && !permissions[page]) {
+                alert('❌ Accès refusé : Vous n\'avez pas la permission d\'accéder à cette page.');
+                return;
+            }
+            
+            // Page users réservée aux admins
+            if (page === 'users' && !isAdmin) {
+                alert('❌ Accès refusé : Seuls les administrateurs peuvent gérer les utilisateurs.');
+                return;
+            }
+            
             currentPage = page;
             renderApp();
             // Fermer la sidebar mobile après navigation
@@ -4029,7 +4998,32 @@
                 const userDoc = await db.collection('users').doc(user.uid).get();
                 if (userDoc.exists && userDoc.data().active) {
                     currentUser = { uid: user.uid, ...userDoc.data() };
-                    if (currentPage === 'login') currentPage = 'dashboard';
+                    
+                    // Initialiser l'écoute des ruptures de stock
+                    initOutOfStockListener();
+                    
+                    // Rediriger vers la première page autorisée si on est sur login
+                    if (currentPage === 'login') {
+                        const permissions = currentUser.permissions || {};
+                        const isAdmin = currentUser.role === 'admin';
+                        
+                        // Liste des pages par ordre de priorité
+                        const pageOrder = ['dashboard', 'pos', 'kds', 'payments', 'items', 'stock', 'recipes', 'reports'];
+                        
+                        // Trouver la première page autorisée
+                        if (isAdmin) {
+                            currentPage = 'dashboard';
+                        } else {
+                            const firstAllowedPage = pageOrder.find(page => permissions[page]);
+                            currentPage = firstAllowedPage || 'dashboard';
+                        }
+                    }
+                } else {
+                    // Arrêter l'écoute si déconnecté
+                    if (outOfStockUnsubscribe) {
+                        outOfStockUnsubscribe();
+                        outOfStockUnsubscribe = null;
+                    }
                 }
             }
             renderApp();
