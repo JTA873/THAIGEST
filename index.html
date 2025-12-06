@@ -506,8 +506,6 @@
         .cart-items {
             flex: 1;
             overflow-y: auto;
-            margin-top: var(--spacing-lg);
-            margin-bottom: var(--spacing-lg);
             padding-right: var(--spacing-sm);
         }
         
@@ -865,15 +863,23 @@
             }
             
             .cart-sidebar {
-                height: auto;
-                min-height: 400px;
-                max-height: none;
+                height: auto !important;
+                min-height: 500px;
+                max-height: 70vh;
+                overflow: visible !important;
             }
             
             .cart-sidebar .cart-content {
                 display: flex !important;
                 flex-direction: column;
                 height: 100%;
+                overflow: visible;
+            }
+            
+            .cart-sidebar .cart-items {
+                flex: 1;
+                overflow-y: auto;
+                max-height: 200px;
             }
             
             .cart-sidebar.collapsed .cart-content {
